@@ -1,0 +1,79 @@
+
+  
+  /* Button color */
+  .btn-pink {
+    background-color: #E10174;
+    border-color: #E10174;
+  }
+  
+  
+  
+ 
+ 
+
+/* Fade-in animation */
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Apply fadeIn animation */
+.animated.fadeIn {
+  animation: fadeIn 1s ease-in-out;
+}
+
+/* Gradient button styling */
+.btn-gradient {
+  background: linear-gradient(to right, #E10174, #ff7e5f);
+  border: none;
+  transition: all 0.3s ease;
+}
+
+.btn-gradient:hover {
+  background: linear-gradient(to right, #ff7e5f, #E10174);
+  transform: scale(1.05);
+}
+
+/* Card style enhancements */
+.card {
+  background-color: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* Input and button rounded styles */
+input, button {
+  border-radius: 50px;
+}
+
+/* Focus and hover effects */
+input:focus, button:focus {
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
+  outline: none;
+}
+
+/* Alerts (success and error) with fade-in effect */
+.alert {
+  animation: fadeIn 0.5s ease;
+}
+/* Add this CSS to fix the header and make the table body scrollable */
+.table-responsive {
+  position: relative;
+}
+
+.table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background-color: #E10174;
+  color: white;
+}
+
+.table tbody {
+  max-height: 300px;  /* Adjust the height as needed */
+  overflow-y: auto;
+}

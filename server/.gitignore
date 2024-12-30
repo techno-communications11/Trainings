@@ -1,0 +1,71 @@
+# Node Modules
+node_modules/
+
+# Environment Variables
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build Output
+dist/
+build/
+
+# System Files
+.DS_Store
+Thumbs.db
+
+# IDE Files
+.vscode/
+.idea/
+*.iml
+
+# Test Coverage Reports
+coverage/
+
+# Temporary Files
+.tmp/
+.temp/
+
+# Debugging Output
+*.pid
+*.seed
+*.pid.lock
+
+# Generated Files
+*.tsbuildinfo
+
+# npm or Yarn dependency lock files for optional package managers (if applicable)
+package-lock.json
+yarn.lock
+
+# Docker Ignore
+.dockerignore
+
+# PM2 Logs (if using PM2 for process management)
+pm2-logs/
+
+# AWS Credentials or Other Sensitive Files
+.aws/
+*.pem
+
+# Miscellaneous
+*.swp
+*.swo
+*.bak
+*.tmp
+
+# Specific Framework or Tools
+.next/                 # For Next.js
+.svelte-kit/           # For SvelteKit
+out/                   # For static export in Next.js
+functions/node_modules # Firebase functions
+firebase-debug.log
+.nuxt/                 # For Nuxt.js
+
