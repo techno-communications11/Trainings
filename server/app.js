@@ -7,7 +7,7 @@ const db = require('./db.js');
 dotenv.config();
 
 const app = express();
-const port = 3000;
+const port = 4501;
 
 app.use(cors());
 app.use(express.json()); // Middleware to parse JSON requests
@@ -16,5 +16,5 @@ app.use(express.json()); // Middleware to parse JSON requests
 app.use('/photos', uploadsRouter);
 
 app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
+  console.log(`Server is running on port: ${port}`);
 });
