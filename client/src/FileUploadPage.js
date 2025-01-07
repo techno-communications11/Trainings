@@ -54,7 +54,7 @@ const FileUploadPage = () => {
         setSuccess(response.data.message);
         setTimeout(() => {
          
-          navigate('/home'); // Navigate after setting the success message
+          navigate('/trainingdata'); // Navigate after setting the success message
         }, 2000); // Delay is a single number in milliseconds
       }
       

@@ -9,7 +9,12 @@ dotenv.config();
 const app = express();
 const port = 4501;
 
-app.use(cors());
+app.use(cors({
+  origin: `${process.env.Client_URL}`,  // Adjust according to your frontend URL
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+
 app.use(express.json()); // Middleware to parse JSON requests
 
 // Use the uploads router for handling routes starting with /photos

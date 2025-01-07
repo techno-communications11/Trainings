@@ -74,7 +74,7 @@ const Login = () => {
                     name="email"
                     value={credentials.email}
                     onChange={handleChange}
-                    placeholder="Enter  email"
+                    placeholder="Enter email"
                     required
                   />
                 </div>
@@ -86,7 +86,7 @@ const Login = () => {
                     name="password"
                     value={credentials.password}
                     onChange={handleChange}
-                    placeholder="Enter  password"
+                    placeholder="Enter password"
                     required
                   />
                   {/* Eye icon for password visibility toggle */}
