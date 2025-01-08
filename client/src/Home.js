@@ -105,7 +105,7 @@ function Home() {
       delay: 'animate__delay-0s'
     },
     {
-      title: 'Training Approval',
+      title: 'Training Pending',
       value: training,
       icon: <FaGraduationCap size={24} />,
       gradient: 'linear-gradient(135deg, #49a3f1 0%, #1A73E8 100%)',
