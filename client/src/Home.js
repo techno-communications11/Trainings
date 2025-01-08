@@ -112,7 +112,7 @@ function Home() {
       delay: 'animate__delay-0.1s'
     },
     {
-      title: 'passDue',
+      title: 'Pass Due',
       value: passdue,
       icon: <FaClock size={24} />,
       gradient: 'linear-gradient(135deg,rgb(15, 66, 60) 0%, #764ba2 100%)',

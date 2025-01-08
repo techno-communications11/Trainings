@@ -132,19 +132,22 @@ function handleFileUpload(req, res) {
 
             console.log("Table truncated successfully.");
 
-          // Prepare data for database insertion
-          const rdmApprovalArray = Array.from(rdmApproval).map((login) => [
-            login,
-            loginsToMatch.get(login),
-            "RDM Approval",
-          ]);
-          const trainingApprovalArray = Array.from(trainingApproval).map(
-            (login) => [
-              login,
-              loginsToMatch.get(login),
-              "Training Pending",
-            ]
-          );
+            // Prepare data for database insertion
+            const insertData = [];
+
+            rdmApproval.forEach((login) => {
+              insertData.push([login, loginsToMatch.get(login), "RDM Approval"]);
+            });
+
+            trainingApproval.forEach((login) => {
+              if (!rdmApproval.has(login)) {  // Ensure no duplicates
+                insertData.push([
+                  login,
+                  loginsToMatch.get(login),
+                  "Training Pending",
+                ]);
+              }
+            });
 
             if (insertData.length > 0) {
               const insertSQL =
