@@ -20,7 +20,7 @@ const handleMarketStructureFileUpload = (req, res) => {
         mainstore: data['Store Name'],
         dm: data['DM Name'],
         doorcode: data['Door Code'],
-        Market:data['Market'],
+        Market: data['Market'],
       };
       results.push(transformedRow);
     })
@@ -35,15 +35,23 @@ const handleMarketStructureFileUpload = (req, res) => {
         }
 
         // Step 2: Insert the new data
-        const insertQuery = 'INSERT INTO marketstructure (mainstore, dm, doorcode,Market) VALUES (?, ?, ?,?)';
+        const insertQuery = 'INSERT INTO marketstructure (mainstore, dm, doorcode, Market) VALUES (?, ?, ?, ?)';
         
         results.forEach((row) => {
-          db.query(insertQuery, [row.mainstore, row.dm, row.doorcode,row.Market], (err, result) => {
+          db.query(insertQuery, [row.mainstore, row.dm, row.doorcode, row.Market], (err, result) => {
             if (err) {
               console.error('Database insertion failed:', err);
             }
           });
         });
+
+        // Remove the uploaded file after successful processing and insertion
+        try {
+          fs.unlinkSync(filePath); // Remove the file
+          console.log(`File ${filePath} deleted successfully.`);
+        } catch (err) {
+          console.error(`Error deleting file: ${err}`);
+        }
 
         res.status(200).json({
           message: 'File processed and data inserted into the database successfully.',

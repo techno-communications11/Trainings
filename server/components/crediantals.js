@@ -23,9 +23,6 @@ const handleCrediantalsFileUpload = (req, res) => {
       })
     )
     .on('data', (data) => {
-      // Log the data to confirm column names
-      console.log('Raw data:', data);
-
       // Trim spaces from all values in the row
       const cleanedData = Object.fromEntries(
         Object.entries(data).map(([key, value]) => [key, value.trim()])
@@ -33,9 +30,6 @@ const handleCrediantalsFileUpload = (req, res) => {
       results.push(cleanedData);
     })
     .on('end', () => {
-      // Check the results to see if NTID, Doorcode, and Name are correctly populated
-      console.log('Parsed results:', results);
-
       // Step 1: Truncate the table
       const truncateSQL = 'TRUNCATE TABLE credentials';
       db.query(truncateSQL, (truncateErr) => {
@@ -75,6 +69,15 @@ const handleCrediantalsFileUpload = (req, res) => {
             if (failedInserts.length > 0) {
               console.warn(`${failedInserts.length} rows failed to insert.`);
             }
+
+            // Remove the uploaded file after data insertion
+            try {
+              fs.unlinkSync(file1Path); // Remove the file
+              console.log(`File ${file1Path} deleted successfully.`);
+            } catch (err) {
+              console.error(`Error deleting file: ${err}`);
+            }
+
             res.status(200).json({
               message: 'File uploaded successfully and data inserted into database.',
               failedInsertsCount: failedInserts.length,

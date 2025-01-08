@@ -29,13 +29,11 @@ const requiredAssignments = [
   "Ready! Express | Welcome",
 ];
 
-// Special RDM assignments
 const rdmAssignments = [
   "Ready! Express | Self-Paced New Hire Training",
   "Ready! Express | Leader Connect",
 ];
 
-// Helper function to check assignment status
 function processAssignments(assignments) {
   const allRequiredCompleted = requiredAssignments.every((reqAssignment) => {
     const found = assignments.find((a) => a.assignmentName === reqAssignment);
@@ -60,7 +58,6 @@ function processAssignments(assignments) {
   };
 }
 
-// Function to handle file upload and processing
 function handleFileUpload(req, res) {
   if (!req.files || Object.keys(req.files).length === 0) {
     return res.status(400).json({ message: "No files were uploaded." });
@@ -73,8 +70,8 @@ function handleFileUpload(req, res) {
   const rdmApproval = new Set();
   const trainingApproval = new Set();
 
-  const loginsToMatch = new Map(); // Store logins and their Assigned Date
-  const userAssignments = new Map(); // Store assignments per user
+  const loginsToMatch = new Map();
+  const userAssignments = new Map();
 
   // Step 1: Parse first file to get incomplete logins and their Assigned Date
   fs.createReadStream(file1Path)
@@ -93,7 +90,6 @@ function handleFileUpload(req, res) {
           if (loginsToMatch.has(login)) {
             matchedRows.push(row);
 
-            // Group assignments by user
             if (!userAssignments.has(login)) {
               userAssignments.set(login, []);
             }
@@ -112,22 +108,26 @@ function handleFileUpload(req, res) {
             if (needsRDMApproval) {
               rdmApproval.add(login);
             } else if (needsTrainingApproval) {
-              // Only add to training approval if not in RDM approval
               trainingApproval.add(login);
             }
           }
 
-          // Remove any duplicates that might have gotten into training approval
+          // Remove duplicates from training approval
           for (const login of rdmApproval) {
             trainingApproval.delete(login);
           }
 
           // Clean up uploaded files
-          fs.unlinkSync(file1Path);
-          fs.unlinkSync(file2Path);
+          try {
+            fs.unlinkSync(file1Path);
+            fs.unlinkSync(file2Path);
+            console.log("Files removed from the upload folder.");
+          } catch (err) {
+            console.error("Failed to delete files from upload folder:", err);
+          }
 
+          // Truncate trainingreport table
           const sql = "TRUNCATE TABLE trainingreport";
-
           db.query(sql, (err) => {
             if (err) {
               console.error("Failed to truncate the table:", err);
@@ -136,16 +136,16 @@ function handleFileUpload(req, res) {
             }
           });
 
-          // Include Assigned Date in the database insertion
+          // Prepare data for database insertion
           const rdmApprovalArray = Array.from(rdmApproval).map((login) => [
             login,
-            loginsToMatch.get(login), // Assigned Date
+            loginsToMatch.get(login),
             "RDM Approval",
           ]);
           const trainingApprovalArray = Array.from(trainingApproval).map(
             (login) => [
               login,
-              loginsToMatch.get(login), // Assigned Date
+              loginsToMatch.get(login),
               "Training Pending",
             ]
           );
@@ -167,8 +167,8 @@ function handleFileUpload(req, res) {
             });
           }
 
-          console.log("rdm app", rdmApproval);
-          console.log("trg app", trainingApproval);
+          console.log("RDM Approval:", rdmApproval);
+          console.log("Training Approval:", trainingApproval);
 
           // Send response
           res.status(200).json({
@@ -188,6 +188,5 @@ function handleFileUpload(req, res) {
       res.status(400).json({ message: "Failed to parse the first file." });
     });
 }
-
 
 module.exports = { handleFileUpload };

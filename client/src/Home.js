@@ -109,7 +109,7 @@ function Home() {
                   </Popover>
                 }
               >
-                <button className="custom-dropdown border-0 bg-transparent text-white fw-bolder shadow-none">
+                <button className="custom-dropdown1 border-0 bg-transparent text-white fw-bolder shadow-none">
                 {selectedMarket === 'All' ? 'Market ' : selectedMarket}<MdOutlineKeyboardArrowDown className='fs-3'/>
                 </button>
               </OverlayTrigger>
