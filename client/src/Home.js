@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Table, Spinner, Alert, Dropdown, OverlayTrigger, Popover ,Card, Col,Row} from 'react-bootstrap';
+import { Container, Table, Alert, Dropdown, OverlayTrigger, Popover ,Card, Col,Row} from 'react-bootstrap';
 import './Login.css'; 
 import { MdOutlineKeyboardArrowDown } from "react-icons/md";
 import { FaUserCheck, FaGraduationCap, FaChartLine,FaClock } from 'react-icons/fa';
+import Lottie from "react-lottie";
+import animationData from "./Animation.json"; // Path to your JSON file
 
 function Home() {
   const [trackingDetails, setTrackingDetails] = useState([]);
@@ -81,10 +83,22 @@ function Home() {
 
   const filteredCounts = selectedMarket === 'All' ? countsByMarket : { [selectedMarket]: countsByMarket[selectedMarket] };
 
+  const defaultOptions = {
+    loop: true,
+    autoplay: true,
+    animationData: animationData,
+    rendererSettings: {
+      preserveAspectRatio: "xMidYMid slice",
+    },
+  };
+
   if (loading) {
     return (
-      <Container className="text-center mt-5">
-        <Spinner animation="border" role="status" />
+      <Container
+        fluid
+        className="d-flex justify-content-center align-items-center vh-100"
+      >
+        <Lottie options={defaultOptions} height={150} width={150} />
       </Container>
     );
   }

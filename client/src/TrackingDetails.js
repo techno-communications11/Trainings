@@ -4,8 +4,10 @@ import ExcelJS from "exceljs";
 import "./Login.css";
 import { RxUpdate } from "react-icons/rx";
 import { IoMdDownload } from "react-icons/io";
-import { Popover, OverlayTrigger } from "react-bootstrap";
+import { Popover, OverlayTrigger,Container   } from "react-bootstrap";
 import { MdOutlineKeyboardArrowDown } from "react-icons/md";
+import Lottie from "react-lottie";
+import animationData from "./Animation.json";
 
 const TrackingDetails = () => {
   const [trackingDetails, setTrackingDetails] = useState([]);
@@ -338,7 +340,25 @@ const TrackingDetails = () => {
   ];
 
   if (error) return <div className="alert alert-danger p-2 small">{error}</div>;
-  if (loading) return <div className="text-center p-2 text-muted small">Loading...</div>;
+  const defaultOptions = {
+    loop: true,
+    autoplay: true,
+    animationData: animationData,
+    rendererSettings: {
+      preserveAspectRatio: "xMidYMid slice",
+    },
+  };
+
+  if (loading) {
+    return (
+      <Container
+        fluid
+        className="d-flex justify-content-center align-items-center vh-100"
+      >
+        <Lottie options={defaultOptions} height={150} width={150} />
+      </Container>
+    );
+  }
 
   return (
     <div className="card shadow-sm mt-2">
