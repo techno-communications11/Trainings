@@ -94,7 +94,7 @@ const Register = () => {
                     name="email"
                     value={userData.email}
                     onChange={handleChange}
-                    placeholder="Enter   email"
+                    placeholder="Enter email"
                     required
                   />
                 </div>
@@ -110,7 +110,7 @@ const Register = () => {
                       name="password"
                       value={userData.password}
                       onChange={handleChange}
-                      placeholder="Enter   password"
+                      placeholder="Enter password"
                       required
                     />
                     <button
@@ -132,7 +132,7 @@ const Register = () => {
                     id="confirmPassword"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Confirm   password"
+                    placeholder="Confirm password"
                     required
                   />
                 </div>

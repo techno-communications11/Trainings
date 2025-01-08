@@ -1,4 +1,3 @@
-// components/fileProcessor.js
 const fs = require("fs");
 const path = require("path");
 const csv = require("csv-parser");
@@ -112,11 +111,6 @@ function handleFileUpload(req, res) {
             }
           }
 
-          // Remove duplicates from training approval
-          for (const login of rdmApproval) {
-            trainingApproval.delete(login);
-          }
-
           // Clean up uploaded files
           try {
             fs.unlinkSync(file1Path);
@@ -127,14 +121,16 @@ function handleFileUpload(req, res) {
           }
 
           // Truncate trainingreport table
-          const sql = "TRUNCATE TABLE trainingreport";
-          db.query(sql, (err) => {
-            if (err) {
-              console.error("Failed to truncate the table:", err);
-            } else {
-              console.log("Table truncated successfully.");
+          const truncateSQL = "TRUNCATE TABLE trainingreport";
+          db.query(truncateSQL, (truncateErr) => {
+            if (truncateErr) {
+              console.error("Failed to truncate the table:", truncateErr);
+              return res.status(500).json({
+                message: "Failed to truncate the table.",
+              });
             }
-          });
+
+            console.log("Table truncated successfully.");
 
           // Prepare data for database insertion
           const rdmApprovalArray = Array.from(rdmApproval).map((login) => [
@@ -150,32 +146,37 @@ function handleFileUpload(req, res) {
             ]
           );
 
-          if (rdmApprovalArray.length > 0) {
-            const sql =
-              "INSERT INTO trainingreport (Ntid, AssignedDate, Status) VALUES ?";
-            db.query(sql, [rdmApprovalArray], (err) => {
-              if (err) console.error("Database insertion failed for RDM:", err);
-            });
-          }
+            if (insertData.length > 0) {
+              const insertSQL =
+                "INSERT INTO trainingreport (Ntid, AssignedDate, Status) VALUES ?";
+              db.query(insertSQL, [insertData], (insertErr) => {
+                if (insertErr) {
+                  console.error(
+                    "Database insertion failed for insertData:",
+                    insertErr
+                  );
+                  return res.status(500).json({
+                    message: "Database insertion failed.",
+                  });
+                }
 
-          if (trainingApprovalArray.length > 0) {
-            const sql =
-              "INSERT INTO trainingreport (Ntid, assignedDate, Status) VALUES ?";
-            db.query(sql, [trainingApprovalArray], (err) => {
-              if (err)
-                console.error("Database insertion failed for Training:", err);
-            });
-          }
-
-          console.log("RDM Approval:", rdmApproval);
-          console.log("Training Approval:", trainingApproval);
-
-          // Send response
-          res.status(200).json({
-            message: "Files processed successfully!",
-            matchedRows,
-            rdmApproval: Array.from(rdmApproval),
-            trainingApproval: Array.from(trainingApproval),
+                console.log("Data inserted successfully.");
+                // Send response
+                res.status(200).json({
+                  message: "Files processed successfully!",
+                  matchedRows,
+                  rdmApproval: Array.from(rdmApproval),
+                  trainingApproval: Array.from(trainingApproval),
+                });
+              });
+            } else {
+              res.status(200).json({
+                message: "No data to insert.",
+                matchedRows,
+                rdmApproval: Array.from(rdmApproval),
+                trainingApproval: Array.from(trainingApproval),
+              });
+            }
           });
         })
         .on("error", (error) => {

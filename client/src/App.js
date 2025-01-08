@@ -9,6 +9,7 @@ import { Login } from "./Login";
 import { Register } from "./Register";
 import PrivateRoute from "./PrivateRoute"; // Import the PrivateRoute
 import Home from "./Home";
+import Users from "./UpdatePasswordForm";
 
 function App() {
   // Check if the user is authenticated
@@ -32,6 +33,7 @@ function App() {
           <Route path="/management" element={<PrivateRoute element={<Management />} />} />
           <Route path="/marketstructure" element={<PrivateRoute element={<MarketStructure />} />} />
           <Route path="/trackingdetails" element={<PrivateRoute element={<FileUploadPage />} />} />
+          <Route path="/user"element={<Users />} />
         </Routes>
       </BrowserRouter>
     </div>

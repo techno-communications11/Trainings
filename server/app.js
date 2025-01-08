@@ -11,7 +11,7 @@ const port = 4501;
 
 app.use(cors({
   origin: `${process.env.Client_URL}`,  // Adjust according to your frontend URL
-  methods: ['GET', 'POST'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE'], 
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 

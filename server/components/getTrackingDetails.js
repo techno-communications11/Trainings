@@ -5,11 +5,12 @@ const getTrackingDetails = async (req, res) => {
 
   try {
     // Step 1: Get all ntid in the management table
-    const getManagementQuery = 'SELECT ntid FROM management';
+    const getManagementQuery = 'SELECT Login FROM management';
     const [managementResults] = await db.promise().query(getManagementQuery);
 
     // Extract ntid values in the management table
-    const managementNtids = managementResults.map((row) => row.ntid);
+    const managementNtids = managementResults.map((row) => row.Login);
+    console.log(managementNtids,'mmmger');
 
     // Step 2: Get all ntid from the trainingreport table
     const getTrainingReportQuery = 'SELECT Ntid, Status,assignedDate,Date FROM trainingreport';
@@ -19,8 +20,8 @@ const getTrackingDetails = async (req, res) => {
     const trainingReportNtids = trainingReportResults.map((row) => row.Ntid);
 
     // Step 3: Find NTIDs present in both tables
-    const matchingNtids = managementNtids.filter((ntid) =>
-      trainingReportNtids.includes(ntid)
+    const matchingNtids = managementNtids.filter((Login) =>
+      trainingReportNtids.includes(Login)
     );
 
     // Log matching NTIDs in the console

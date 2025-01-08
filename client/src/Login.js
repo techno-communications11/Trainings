@@ -98,7 +98,9 @@ const Login = () => {
                     {showPassword ? <FaEyeSlash /> : <FaEye />} {/* Toggle the icon */}
                   </span>
                 </div>
-                <button type="submit" className="btn btn-pink w-100 text-white mt-3 mb-3">Login</button>
+                <a href='/user'>forgot password ?</a>
+                <button type="submit" className="btn btn-pink w-100 text-white mt-1 mb-3">Login</button>
+               
               </form>
             </div>
           </div>
