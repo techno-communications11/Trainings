@@ -4,7 +4,7 @@ import './Login.css';
 import { MdOutlineKeyboardArrowDown } from "react-icons/md";
 import { FaUserCheck, FaGraduationCap, FaChartLine,FaClock } from 'react-icons/fa';
 import Lottie from "react-lottie";
-import animationData from "./Animation.json"; // Path to your JSON file
+import animationData from "./Animation.json";
 
 function Home() {
   const [trackingDetails, setTrackingDetails] = useState([]);
@@ -210,7 +210,7 @@ function Home() {
                 }
               >
                 <button className="custom-dropdown1 border-0 bg-transparent text-white fw-bolder shadow-none">
-                {selectedMarket === 'All' ? 'Market ' : selectedMarket}<MdOutlineKeyboardArrowDown className='fs-3'/>
+                {selectedMarket === 'All' ? 'Market': selectedMarket}<MdOutlineKeyboardArrowDown className='fs-3'/>
                 </button>
               </OverlayTrigger>
             </th>

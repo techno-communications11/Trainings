@@ -53,7 +53,7 @@ const Login = () => {
         {/* Left side with logo */}
         <div className="col-md-6 bg-pink d-flex justify-content-center align-items-center">
           <img
-            src="logo - Copy.png"
+            src="logoT.webp"
             alt="Logo"
             className="img-fluid w-75"
           />

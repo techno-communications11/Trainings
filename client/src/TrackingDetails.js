@@ -161,7 +161,6 @@ const TrackingDetails = () => {
 
   const handleFilterChange = (value, header) => {
     if (!header) return;
-
     setFilters((prevFilters) => {
       const newFilters = { ...prevFilters, [header]: value };
       filterData(newFilters);
