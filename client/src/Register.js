@@ -67,10 +67,10 @@ const Register = () => {
         {/* Image on the left */}
         <div className="col-md-5 d-flex justify-content-center align-items-center">
           <img 
-            src="logo - Copy.png" // Replace with   logo URL
+            src="logoT.webp" // Replace with   logo URL
             alt="Logo"
             className="img-fluid animate__animated animate__fadeIn" 
-            style={{ maxWidth: '500px', height:"400px" }} 
+            style={{ maxWidth: '600px', height:"300px" }} 
           />
         </div>
 

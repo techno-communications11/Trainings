@@ -390,7 +390,7 @@ const TrackingDetails = () => {
             </h4>
           </div>
 
-          <div className="d-flex justify-content-center align-items-center">
+          <div className="d-flex justify-content-center align-items-center mt-2">
             {["All", "Red", "Yellow", "No Color"].map((color) => (
               <ColorFilter
                 key={color}

@@ -1,20 +1,22 @@
 import React, { useState } from "react";
-import {Link} from 'react-router-dom'
+import { Link } from "react-router-dom";
+
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const handleLogout = () => {
     localStorage.clear(); // Clears the local storage
-    window.location.href = '/'; // Redirect to the home page
+    window.location.href = "/"; // Redirect to the home page
   };
-  
 
   return (
     <nav className="navbar navbar-expand-lg navbar-light bg-light shadow">
       <div className="container-fluid">
-      <div className="navbar-nav me-auto"> 
-        <img src="logo - Copy.png" height={50} alt="Logo" />
-         <a className="navbar-brand fw-bold" href="/home"> Techno Communications LLC </a> 
-         </div>
+        <div className="d-flex align-items-center">
+          <img src="logo.webp" height={40} alt="Logo" />
+          <a className="navbar-brand fw-bold fs-6" href="/home">
+            Techno Communications LLC
+          </a>
+        </div>
 
         <button
           className="navbar-toggler"
@@ -32,38 +34,41 @@ const Navbar = () => {
           id="navbarNav"
         >
           <ul className="navbar-nav ms-auto">
-          <li className="nav-item">
-              <Link className="nav-link fw-medium" as={Link} to="/trainingdata">
+            <li className="nav-item">
+              <Link className="nav-link fw-medium" to="/trainingdata">
                 Training Data
               </Link>
             </li>
-          <li className="nav-item">
-              <Link className="nav-link fw-medium" as={Link} to="/trackingdetails">
+            <li className="nav-item">
+              <Link className="nav-link fw-medium" to="/trackingdetails">
                 Upload
               </Link>
             </li>
             <li className="nav-item">
-              <Link className="nav-link fw-medium" as={Link} to="/marketstructure">
+              <Link className="nav-link fw-medium" to="/marketstructure">
                 Market Structure
               </Link>
             </li>
             <li className="nav-item">
-              <Link className="nav-link fw-medium" as={Link} to="/management">
+              <Link className="nav-link fw-medium" to="/management">
                 Management
               </Link>
             </li>
             <li className="nav-item">
-              <Link className="nav-link fw-medium" as={Link} to="/credentials">
+              <Link className="nav-link fw-medium" to="/credentials">
                 Credentials
               </Link>
             </li>
             <li className="nav-item">
-              <Link className="nav-link fw-medium" as={Link} to="/register">
+              <Link className="nav-link fw-medium" to="/register">
                 Register
               </Link>
             </li>
             <li className="nav-item">
-              <button className="btn btn-danger mx-2 btn-small" onClick={handleLogout} >
+              <button
+                className="btn btn-danger mx-2 btn-small"
+                onClick={handleLogout}
+              >
                 Logout
               </button>
             </li>
