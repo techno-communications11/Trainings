@@ -7,13 +7,18 @@
   const { getTrackingDetails } =require('../components/getTrackingDetails.js');
   const {Login}=require('../components/Login.js')
   const {Register}=require('../components/Register.js')
-
- const updatepassword = require('../components/updatepassword')
+ const updatepassword = require('../components/updatepassword');
+ const sendOtp = require('../components/sendOtp');
+ const { verifyOtp } = require('../components/verifyOtp'); 
 
   const router = express.Router();
   router.post('/login', Login);
   router.post('/register', Register);
   router.put('/update-password',updatepassword);
+  router.post('/send-otp', sendOtp);
+  // Define routes for file upload
+  router.post('/verify-otp', verifyOtp);
+
   // Define routes for file upload
   router.get('/tracking-details', getTrackingDetails);
   router.post('/upload', upload.fields([{ name: 'file1' }, { name: 'file2' }]), handleFileUpload);

@@ -19,7 +19,7 @@ function App() {
     <div className="App">
       <BrowserRouter>
         {/* Conditionally render Navbar only if authenticated and not on the login page */}
-        {isAuthenticated && window.location.pathname !== '/' && <Navbar />}
+        {isAuthenticated && (window.location.pathname !== '/'&&window.location.pathname!=='/user') && <Navbar />}
 
         <Routes>
           {/* Public routes */}
@@ -33,7 +33,7 @@ function App() {
           <Route path="/management" element={<PrivateRoute element={<Management />} />} />
           <Route path="/marketstructure" element={<PrivateRoute element={<MarketStructure />} />} />
           <Route path="/trackingdetails" element={<PrivateRoute element={<FileUploadPage />} />} />
-          <Route path="/user"element={<Users />} />
+          <Route path="/user" element={<Users />} />
         </Routes>
       </BrowserRouter>
     </div>

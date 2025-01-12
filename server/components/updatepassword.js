@@ -3,7 +3,7 @@ const db = require('../db');
 
 const updatepassword = (req, res) => {
   const { email, password } = req.body;
-  console.log(req.body,"bbb sdvh")
+  // console.log(req.body,"bbb sdvh")
 
   // Hash the password before saving to the database
   bcrypt.hash(password, 10, (err, hashedPassword) => {

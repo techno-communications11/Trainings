@@ -1,9 +1,8 @@
-// app.js
+// app.js (Backend)
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
-const uploadsRouter = require('./routes/uploads.router'); // Adjust the path as needed
-const db = require('./db.js');
+const uploadsRouter = require('./routes/uploads.router');
 dotenv.config();
 
 const app = express();
