@@ -29,11 +29,10 @@ const Login = () => {
       });
 
       const data = await response.json();
-      
+
       if (response.ok) {
         localStorage.setItem('token', data.token); // Save the token
-        // Redirect to /home after successful login
-        window.location.href = '/home';
+        window.location.href = '/home'; // Redirect after successful login
       } else {
         setError(data.message || 'Login failed');
       }
@@ -45,13 +44,13 @@ const Login = () => {
   return (
     <div className="container-fluid min-vh-100 d-flex flex-column justify-content-center bg-gradient">
       {/* Centered Heading */}
-      <h1 className="text-center mb-5" style={{ color: '#E10174', fontWeight: 'bold', fontSize: '2.5rem' }}>
+      <h1 className="text-center mb-5" style={{ color: '#E10174', fontWeight: 'bold', fontSize: '2rem' }}>
         Techno Communications LLC
       </h1>
 
       <div className="row w-100 m-0">
         {/* Left side with logo */}
-        <div className="col-md-6 bg-pink d-flex justify-content-center align-items-center">
+        <div className="col-lg-6 d-none d-lg-flex justify-content-center align-items-center">
           <img
             src="logoT.webp"
             alt="Logo"
@@ -60,8 +59,9 @@ const Login = () => {
         </div>
 
         {/* Right side with login form */}
-        <div className="col-md-6 d-flex justify-content-center align-items-center p-5">
-          <div className="card shadow-lg w-75 border-0 rounded-1">
+        <div className="col-lg-6 col-md-8 col-sm-12 mx-auto d-flex justify-content-center align-items-center p-4">
+        <div className="card shadow-lg mx-auto border-0 rounded-1" style={{ maxWidth: '500px', width: '90%' }}>
+
             <div className="card-body">
               {error && <div className="alert alert-danger">{error}</div>}
               <form onSubmit={handleSubmit}>
@@ -69,7 +69,7 @@ const Login = () => {
                 <div className="mb-3">
                   <input
                     type="email"
-                    className="form-control  shadow-none border"
+                    className="form-control shadow-none border"
                     id="email"
                     name="email"
                     value={credentials.email}
@@ -80,7 +80,7 @@ const Login = () => {
                 </div>
                 <div className="mb-1 position-relative">
                   <input
-                    type={showPassword ? "text" : "password"} // Toggle between text and password input type
+                    type={showPassword ? 'text' : 'password'}
                     className="form-control shadow-none border"
                     id="password"
                     name="password"
@@ -90,17 +90,18 @@ const Login = () => {
                     required
                   />
                   {/* Eye icon for password visibility toggle */}
-                  <span 
-                    className="position-absolute top-50 end-0 me-3" 
-                    style={{ cursor: 'pointer', transform: 'translateY(-50%)' }} 
+                  <span
+                    className="position-absolute top-50 end-0 me-3"
+                    style={{ cursor: 'pointer', transform: 'translateY(-50%)' }}
                     onClick={() => setShowPassword(!showPassword)}
                   >
-                    {showPassword ? <FaEyeSlash /> : <FaEye />} {/* Toggle the icon */}
+                    {showPassword ? <FaEyeSlash /> : <FaEye />}
                   </span>
                 </div>
-                <a href='/user'>forgot password ?</a>
-                <button type="submit" className="btn btn-pink w-100 text-white mt-1 mb-3">Login</button>
-               
+                <a href="/user">Forgot password?</a>
+                <button type="submit" className="btn btn-pink w-100 text-white mt-1 mb-3">
+                  Login
+                </button>
               </form>
             </div>
           </div>
