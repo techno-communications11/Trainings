@@ -41,6 +41,7 @@ const TrackingDetails = () => {
         }
         const data = await response.json();
         setTrackingDetails(data.trackingDetails);
+         console.log(data.ticketingDetails ,'data got from server')
         setFilteredDetails(data.trackingDetails);
         const dates = [
           ...new Set(data.trackingDetails.map((detail) => detail.Date)),
@@ -68,14 +69,32 @@ const TrackingDetails = () => {
       timeZone: "America/Chicago",
     });
   };
-
+  
   const calculateDuration = (assignedDate) => {
+    console.log(getChicagoDate(), "Chicago date");
+    console.log(assignedDate, "Assigned date");
+  
+    // Convert to Date objects
     const chicagoDate = new Date(getChicagoDate());
     const assignedDateObj = new Date(assignedDate);
-    chicagoDate.setHours(0, 0, 0, 0);
-    assignedDateObj.setHours(0, 0, 0, 0);
-    return Math.ceil((chicagoDate - assignedDateObj) / (1000 * 60 * 60 * 24));
+  
+    // Calculate the difference in milliseconds
+    const differenceInMillis = chicagoDate - assignedDateObj;
+  
+    // Convert milliseconds to total days, hours, minutes, and seconds
+    const totalSeconds = Math.floor(differenceInMillis / 1000);
+    const days = Math.floor(totalSeconds / (24 * 60 * 60));
+    const hours = Math.floor((totalSeconds % (24 * 60 * 60)) / (60 * 60));
+    const minutes = Math.floor((totalSeconds % (60 * 60)) / 60);
+    const seconds = totalSeconds % 60;
+  
+    // Log the exact breakdown
+    console.log(`${days} days, ${hours} hours, ${minutes} minutes, ${seconds} seconds`);
+    
+    // Return just the total days
+    return days;
   };
+  
 
   const getRowStyle = (assignedDate) => {
     const duration = calculateDuration(assignedDate);
@@ -110,6 +129,7 @@ const TrackingDetails = () => {
   
     // Add rows with conditional formatting
     filteredDetails.forEach((detail, index) => {
+       console.log(detail.assignedDate,'actual  bc date')
       const duration = calculateDuration(detail.assignedDate);
       const durationText = `${duration} ${duration > 1 ? "days" : "day"}`;
   
