@@ -301,7 +301,7 @@ const TrackingDetails = () => {
             </button>
             {[
               ...new Set(
-                trackingDetails.map((detail) => detail[header.toLowerCase()])
+                filteredDetails.map((detail) => detail[header.toLowerCase()])
               ),
             ].map((value) => (
               <button
