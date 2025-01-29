@@ -109,3 +109,24 @@ input:focus, button:focus {
 .dropdown-item:hover {
   color: purple;
 }
+/* Login.css */
+.bg-gradient {
+  background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
+}
+
+.card {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+}
+
+.btn-pink {
+  background-color: #E10174;
+  border: none;
+  transition: background-color 0.3s ease;
+}
+
+.btn-pink:hover {
+  background-color: #c70066;
+}
+
+
