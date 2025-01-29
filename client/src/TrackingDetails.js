@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from "react";
-// import * as XLSX from "xlsx";
 import ExcelJS from "exceljs";
 import "./Login.css";
 import { RxUpdate } from "react-icons/rx";
 import { IoMdDownload } from "react-icons/io";
-import { Popover, OverlayTrigger,Container   } from "react-bootstrap";
+import { Popover, OverlayTrigger, Container } from "react-bootstrap";
 import { MdOutlineKeyboardArrowDown } from "react-icons/md";
 import Lottie from "react-lottie";
 import animationData from "./Animation.json";
@@ -13,7 +12,7 @@ const TrackingDetails = () => {
   const [trackingDetails, setTrackingDetails] = useState([]);
   const [filteredDetails, setFilteredDetails] = useState([]);
   const [markets, setMarkets] = useState([]);
-  const [selectedMarket, setSelectedMarket] = useState("All");
+  const [selectedMarkets, setSelectedMarkets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [date, setDate] = useState(null);
@@ -30,6 +29,7 @@ const TrackingDetails = () => {
     color: "All",
   });
 
+  // Fetch data on component mount
   useEffect(() => {
     const fetchTrackingDetails = async () => {
       try {
@@ -41,14 +41,18 @@ const TrackingDetails = () => {
         }
         const data = await response.json();
         setTrackingDetails(data.trackingDetails);
-         console.log(data.ticketingDetails ,'data got from server')
         setFilteredDetails(data.trackingDetails);
+
+        // Extract unique dates and markets
         const dates = [
           ...new Set(data.trackingDetails.map((detail) => detail.Date)),
         ];
         setDate(dates.length > 0 ? dates[0] : null);
+
         const uniqueMarkets = [
-          ...new Set(data.trackingDetails.map((detail) => detail.Market)),
+          ...new Set(
+            data.trackingDetails.map((detail) => detail.Market.toLowerCase())
+          ),
         ].sort();
         setMarkets(uniqueMarkets);
       } catch (err) {
@@ -64,37 +68,67 @@ const TrackingDetails = () => {
     fetchTrackingDetails();
   }, []);
 
+  // Centralized filtering logic
+  useEffect(() => {
+    const filterData = () => {
+      let filtered = trackingDetails.filter((detail) => {
+        const duration = calculateDuration(detail.assignedDate);
+
+        // Color filter
+        const colorMatch = (() => {
+          switch (filters.color) {
+            case "Red":
+              return duration >= 14;
+            case "Yellow":
+              return duration >= 7 && duration < 14;
+            case "No Color":
+              return duration < 7;
+            case "All":
+            default:
+              return true;
+          }
+        })();
+
+        // Market filter (case-insensitive)
+        const marketMatch =
+          selectedMarkets.length === 0 ||
+          selectedMarkets.includes(detail.Market.toLowerCase());
+
+        // Status filter (case-insensitive)
+        const statusMatch =
+          !filters.status ||
+          detail.status.toLowerCase().includes(filters.status.toLowerCase());
+
+        // DM filter (case-insensitive)
+        const dmMatch =
+          !filters.dm ||
+          detail.dm.toLowerCase().includes(filters.dm.toLowerCase());
+
+        return colorMatch && marketMatch && statusMatch && dmMatch;
+      });
+
+      setFilteredDetails(filtered);
+    };
+
+    if (trackingDetails.length > 0) {
+      filterData();
+    }
+  }, [filters, selectedMarkets, trackingDetails]);
+
+  // Helper functions
   const getChicagoDate = () => {
     return new Date().toLocaleString("en-US", {
       timeZone: "America/Chicago",
     });
   };
-  
+
   const calculateDuration = (assignedDate) => {
-    console.log(getChicagoDate(), "Chicago date");
-    console.log(assignedDate, "Assigned date");
-  
-    // Convert to Date objects
     const chicagoDate = new Date(getChicagoDate());
     const assignedDateObj = new Date(assignedDate);
-  
-    // Calculate the difference in milliseconds
     const differenceInMillis = chicagoDate - assignedDateObj;
-  
-    // Convert milliseconds to total days, hours, minutes, and seconds
     const totalSeconds = Math.floor(differenceInMillis / 1000);
-    const days = Math.floor(totalSeconds / (24 * 60 * 60));
-    const hours = Math.floor((totalSeconds % (24 * 60 * 60)) / (60 * 60));
-    const minutes = Math.floor((totalSeconds % (60 * 60)) / 60);
-    const seconds = totalSeconds % 60;
-  
-    // Log the exact breakdown
-    console.log(`${days} days, ${hours} hours, ${minutes} minutes, ${seconds} seconds`);
-    
-    // Return just the total days
-    return days;
+    return Math.floor(totalSeconds / (24 * 60 * 60)); // Total days
   };
-  
 
   const getRowStyle = (assignedDate) => {
     const duration = calculateDuration(assignedDate);
@@ -108,11 +142,12 @@ const TrackingDetails = () => {
     return duration >= 14 ? "Past Due" : "";
   };
 
+  // Export to Excel
   const exportToExcel = async () => {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet("Training Report");
-  
-    // Define the headers
+
+    // Define headers
     worksheet.columns = [
       { header: "SI No", key: "siNo", width: 10 },
       { header: "NTID", key: "ntid", width: 15 },
@@ -126,13 +161,12 @@ const TrackingDetails = () => {
       { header: "Doorcode", key: "doorcode", width: 15 },
       { header: "Market", key: "market", width: 15 },
     ];
-  
+
     // Add rows with conditional formatting
     filteredDetails.forEach((detail, index) => {
-       console.log(detail.assignedDate,'actual  bc date')
       const duration = calculateDuration(detail.assignedDate);
       const durationText = `${duration} ${duration > 1 ? "days" : "day"}`;
-  
+
       const row = worksheet.addRow({
         siNo: index + 1,
         ntid: detail.ntid,
@@ -146,7 +180,7 @@ const TrackingDetails = () => {
         doorcode: detail.doorcode,
         market: detail.Market.toLowerCase(),
       });
-  
+
       // Apply color based on duration
       if (duration >= 14) {
         row.eachCell((cell) => {
@@ -166,10 +200,12 @@ const TrackingDetails = () => {
         });
       }
     });
-  
+
     // Save the file
     const buffer = await workbook.xlsx.writeBuffer();
-    const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    const blob = new Blob([buffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -179,104 +215,50 @@ const TrackingDetails = () => {
     document.body.removeChild(link);
   };
 
+  // Handle filter changes
   const handleFilterChange = (value, header) => {
     if (!header) return;
-    setFilters((prevFilters) => {
-      const newFilters = { ...prevFilters, [header]: value };
-      filterData(newFilters);
-      return newFilters;
-    });
-    setActivePopover(null);
+    setFilters((prevFilters) => ({
+      ...prevFilters,
+      [header]: value,
+    }));
   };
 
+  // Handle market filter
   const handleMarketFilter = (market) => {
-    setSelectedMarket(market);
-    setFilters((prevFilters) => {
-      const newFilters = { ...prevFilters, market };
-      filterData(newFilters);
-      return newFilters;
+    const marketLower = market.toLowerCase();
+    setSelectedMarkets((prevMarkets) => {
+      const updatedMarkets = prevMarkets.includes(marketLower)
+        ? prevMarkets.filter((m) => m !== marketLower)
+        : [...prevMarkets, marketLower];
+      return updatedMarkets;
     });
-    setActivePopover(null);
   };
-
   const handleSortChange = (column, order) => {
-    const sortedData = [...filteredDetails].sort((a, b) => {
-      if (column === "assigneddate") {
-        return order === "asc"
-          ? new Date(a.assignedDate) - new Date(b.assignedDate)
-          : new Date(b.assignedDate) - new Date(a.assignedDate);
-      }
-      if (column === "duration") {
-        const durationA = calculateDuration(a.assignedDate);
-        const durationB = calculateDuration(b.assignedDate);
-        return order === "asc" ? durationA - durationB : durationB - durationA;
-      }
-      const valueA = (a[column] || "").toString().toLowerCase();
-      const valueB = (b[column] || "").toString().toLowerCase();
-      return order === "asc"
-        ? valueA.localeCompare(valueB)
-        : valueB.localeCompare(valueA);
+    setFilteredDetails(prevDetails => {
+      const sortedData = [...prevDetails].sort((a, b) => {
+        if (column === "assigneddate") {
+          const dateA = new Date(a.assignedDate);
+          const dateB = new Date(b.assignedDate);
+          return order === "asc" ? dateA - dateB : dateB - dateA;
+        }
+        
+        if (column === "duration") {
+          const durationA = calculateDuration(a.assignedDate);
+          const durationB = calculateDuration(b.assignedDate);
+          return order === "asc" ? durationA - durationB : durationB - durationA;
+        }
+        
+        return 0;
+      });
+      
+      return sortedData;
     });
-    setFilteredDetails(sortedData);
+    
     setActivePopover(null);
   };
 
-  const filterData = (currentFilters) => {
-    const filtered = trackingDetails.filter((detail) => {
-      const duration = calculateDuration(detail.assignedDate);
-      const colorMatch =
-        currentFilters.color === "All" ||
-        (currentFilters.color === "Red" && duration >= 14) ||
-        (currentFilters.color === "Yellow" && duration >= 7 && duration < 14) ||
-        (currentFilters.color === "No Color" && duration < 7);
-
-      return (
-        (!currentFilters.status ||
-          detail.status.toLowerCase().includes(currentFilters.status.toLowerCase())) &&
-        (!currentFilters.assignedDate ||
-          detail.assignedDate.includes(currentFilters.assignedDate)) &&
-        (!currentFilters.duration || duration.toString().includes(currentFilters.duration)) &&
-        (!currentFilters.dm ||
-          detail.dm.toLowerCase().includes(currentFilters.dm.toLowerCase())) &&
-        (currentFilters.market === "All" ||
-          detail.Market.toLowerCase() === currentFilters.market.toLowerCase()) &&
-        colorMatch
-      );
-    });
-    setFilteredDetails(filtered);
-  };
-
-  const ColorFilter = ({ color, active, onClick }) => (
-    <div
-      onClick={onClick}
-      className="color-option mx-2 cursor-pointer"
-      style={{
-        width: "30px",
-        height: "30px",
-        borderRadius: "50%",
-        backgroundColor: color === "All" 
-          ? "transparent"
-          : color === "Red"
-          ? "#dc3545"
-          : color === "Yellow"
-          ? "#ffc107"
-          : "rgba(108, 117, 125, 0.25)",
-        border: active ? "2px solid #000" : "1px solid #dee2e6",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        cursor: "pointer",
-        transition: "all 0.2s ease-in-out",
-      }}
-    >
-      {color === "All" && (
-        <span className="text-white bg-dark p-2 rounded-circle" style={{ fontSize: "12px" }}>
-          All
-        </span>
-      )}
-    </div>
-  );
-
+  // Render popover for filters
   const renderPopover = (header) => (
     <Popover id={`popover-${header}`} className="shadow-sm">
       <Popover.Body className="p-0">
@@ -285,65 +267,81 @@ const TrackingDetails = () => {
             <>
               <button
                 className="list-group-item list-group-item-action"
-                onClick={() => handleMarketFilter("All")}
+                onClick={() => setSelectedMarkets([])}
               >
                 All
               </button>
               {markets.map((market) => (
-                <button
-                  key={market}
-                  className="list-group-item list-group-item-action"
-                  onClick={() => handleMarketFilter(market)}
-                >
-                  {market}
-                </button>
+                <div key={market} className="list-group-item d-flex align-items-center">
+                  <input
+                    type="checkbox"
+                    className="me-2"
+                    checked={selectedMarkets.includes(market)}
+                    onChange={() => handleMarketFilter(market)}
+                    id={`market-${market}`}
+                  />
+                  <label
+                    htmlFor={`market-${market}`}
+                    className="mb-0 flex-grow-1 cursor-pointer text-capitalize"
+                    style={{cursor:'pointer'}}
+                  >
+                    {market}
+                  </label>
+                </div>
               ))}
-            </>
-          )}
-          {["Duration", "AssignedDate"].includes(header) && (
-            <>
-              <button
-                className="list-group-item list-group-item-action"
-                onClick={() => handleSortChange(header.toLowerCase(), "asc")}
-              >
-                ↑ Ascending
-              </button>
-              <button
-                className="list-group-item list-group-item-action"
-                onClick={() => handleSortChange(header.toLowerCase(), "desc")}
-              >
-                ↓ Descending
-              </button>
             </>
           )}
           {["Status", "DM"].includes(header) && (
-            <>
+          <>
+            <button
+              className="list-group-item list-group-item-action"
+              onClick={() => handleFilterChange("", header.toLowerCase())}
+            >
+              All
+            </button>
+            {[
+              ...new Set(
+                trackingDetails.map((detail) => detail[header.toLowerCase()])
+              ),
+            ].map((value) => (
               <button
+                key={value}
                 className="list-group-item list-group-item-action"
-                onClick={() => handleFilterChange("", header.toLowerCase())}
+                onClick={() => handleFilterChange(value, header.toLowerCase())}
               >
-                All
+                {value}
               </button>
-              {[
-                ...new Set(
-                  trackingDetails.map((detail) => detail[header.toLowerCase()])
-                ),
-              ].map((value) => (
-                <button
-                  key={value}
-                  className="list-group-item list-group-item-action"
-                  onClick={() => handleFilterChange(value, header.toLowerCase())}
-                >
-                  {value}
-                </button>
-              ))}
-            </>
-          )}
+            ))}
+          </>
+        )}
+        {["AssignedDate", "Duration"].includes(header) && (
+          <>
+            <button
+              className="list-group-item list-group-item-action"
+              onClick={() => handleFilterChange("", header.toLowerCase())}
+            >
+              Clear Sort
+            </button>
+            <button
+              className="list-group-item list-group-item-action"
+              onClick={() => handleSortChange(header.toLowerCase(), "asc")}
+            >
+              ↑ Ascending
+            </button>
+            <button
+              className="list-group-item list-group-item-action"
+              onClick={() => handleSortChange(header.toLowerCase(), "desc")}
+            >
+              ↓ Descending
+            </button>
+          </>
+        )}
         </div>
       </Popover.Body>
     </Popover>
   );
 
+  // Table headers
   const tableHeaders = [
     "SI No",
     "NTID",
@@ -358,7 +356,7 @@ const TrackingDetails = () => {
     "Market",
   ];
 
-  if (error) return <div className="alert alert-danger p-2 small">{error}</div>;
+  // Loading animation
   const defaultOptions = {
     loop: true,
     autoplay: true,
@@ -367,6 +365,10 @@ const TrackingDetails = () => {
       preserveAspectRatio: "xMidYMid slice",
     },
   };
+
+  if (error) {
+    return <div className="alert alert-danger p-2 small">{error}</div>;
+  }
 
   if (loading) {
     return (
@@ -384,8 +386,8 @@ const TrackingDetails = () => {
       <div className="card-body p-2">
         <div className="d-flex flex-column flex-md-row justify-content-around align-items-center mb-3">
           <div className="d-flex align-items-center mb-2 mb-md-0">
-            <button 
-              onClick={exportToExcel} 
+            <button
+              onClick={exportToExcel}
               className="btn btn-primary btn-sm d-flex align-items-center gap-2"
             >
               <IoMdDownload className="fs-5" />
@@ -412,23 +414,47 @@ const TrackingDetails = () => {
 
           <div className="d-flex justify-content-center align-items-center mt-2">
             {["All", "Red", "Yellow", "No Color"].map((color) => (
-              <ColorFilter
+              <div
                 key={color}
-                color={color}
-                active={filters.color === color}
-                onClick={() => {
-                  setFilters((prevFilters) => {
-                    const newFilters = { ...prevFilters, color };
-                    filterData(newFilters);
-                    return newFilters;
-                  });
+                onClick={() => handleFilterChange(color, "color")}
+                className="color-option mx-2 cursor-pointer"
+                style={{
+                  width: "30px",
+                  height: "30px",
+                  borderRadius: "50%",
+                  backgroundColor:
+                    color === "All"
+                      ? "transparent"
+                      : color === "Red"
+                      ? "#dc3545"
+                      : color === "Yellow"
+                      ? "#ffc107"
+                      : "rgba(108, 117, 125, 0.25)",
+                  border: filters.color === color ? "2px solid #000" : "1px solid #dee2e6",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  transition: "all 0.2s ease-in-out",
                 }}
-              />
+              >
+                {color === "All" && (
+                  <span
+                    className="text-white bg-dark p-2 rounded-circle"
+                    style={{ fontSize: "12px" }}
+                  >
+                    All
+                  </span>
+                )}
+              </div>
             ))}
           </div>
         </div>
 
-        <div className="table-responsive" style={{ maxHeight: "700px", overflowY: "auto" }}>
+        <div
+          className="table-responsive"
+          style={{ maxHeight: "700px", overflowY: "auto" }}
+        >
           <table className="table table-bordered table-hover table-sm">
             <thead className="text-center sticky-top bg-white">
               <tr>
@@ -438,20 +464,30 @@ const TrackingDetails = () => {
                       trigger="click"
                       placement="bottom"
                       show={activePopover === header}
-                      onToggle={(nextShow) => setActivePopover(nextShow ? header : null)}
+                      onToggle={(nextShow) =>
+                        setActivePopover(nextShow ? header : null)
+                      }
                       overlay={renderPopover(header)}
                       rootClose
                     >
                       <button
-                        className="btn  text-white btn-link text-dark text-decoration-none w-100 d-flex justify-content-center align-items-center p-1"
-                        onClick={() => setActivePopover(activePopover === header ? null : header)}
+                        className="btn text-white btn-link text-dark text-decoration-none w-100 d-flex justify-content-center align-items-center p-1"
+                        onClick={() =>
+                          setActivePopover(
+                            activePopover === header ? null : header
+                          )
+                        }
                       >
                         {header}
-                        {['DM','Market','Duration','AssignedDate','Status'].includes(header)&&<MdOutlineKeyboardArrowDown 
-                          className={`transition-transform ${
-                            activePopover === header ? 'rotate-180' : ''
-                          }`}
-                        />}
+                        {["DM", "Market", "Duration", "AssignedDate", "Status"].includes(
+                          header
+                        ) && (
+                          <MdOutlineKeyboardArrowDown
+                            className={`transition-transform ${
+                              activePopover === header ? "rotate-180" : ""
+                            }`}
+                          />
+                        )}
                       </button>
                     </OverlayTrigger>
                   </th>
@@ -465,17 +501,25 @@ const TrackingDetails = () => {
                   <td className="text-center">{detail.ntid}</td>
                   <td className="text-center text-capitalize">{detail.name}</td>
                   <td className="text-center">{detail.status}</td>
-                  <td className="text-center">{detail.assignedDate.split(" ")[0]}</td>
+                  <td className="text-center">
+                    {detail.assignedDate.split(" ")[0]}
+                  </td>
                   <td className="text-center">
                     {`${calculateDuration(detail.assignedDate)} ${
                       calculateDuration(detail.assignedDate) > 1 ? "days" : "day"
                     }`}
                   </td>
-                  <td className="text-center">{getComment(detail.assignedDate)}</td>
+                  <td className="text-center">
+                    {getComment(detail.assignedDate)}
+                  </td>
                   <td className="text-center">{detail.dm}</td>
-                  <td className="text-center text-capitalize">{detail.mainstore.toLowerCase()}</td>
+                  <td className="text-center text-capitalize">
+                    {detail.mainstore.toLowerCase()}
+                  </td>
                   <td className="text-center">{detail.doorcode}</td>
-                  <td className="text-center text-capitalize">{detail.Market.toLowerCase()}</td>
+                  <td className="text-center text-capitalize">
+                    {detail.Market.toLowerCase()}
+                  </td>
                 </tr>
               ))}
             </tbody>
