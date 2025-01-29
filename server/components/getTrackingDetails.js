@@ -1,7 +1,7 @@
 const db = require('../db'); // Update path as per your project structure
 
 const getTrackingDetails = async (req, res) => {
-  console.log('Displayed data...');
+  // console.log('Displayed data...');
 
   try {
     // Step 1: Get all ntid in the management table
@@ -10,7 +10,7 @@ const getTrackingDetails = async (req, res) => {
 
     // Extract ntid values in the management table
     const managementNtids = managementResults.map((row) => row.Login);
-    console.log(managementNtids,'mmmger');
+    // console.log(managementNtids,'mmmger');
 
     // Step 2: Get all ntid from the trainingreport table
     const getTrainingReportQuery = 'SELECT Ntid, Status,assignedDate,Date FROM trainingreport';
@@ -86,6 +86,8 @@ const getTrackingDetails = async (req, res) => {
 
     // Wait for all doorcode and market structure queries to finish
     await Promise.all(doorcodePromises);
+       // Step 6: Send the sorted response
+       trackingDetails.sort((a, b) => a.status.localeCompare(b.status));
 
     // Step 5: Send the final response with tracking details
     res.status(200).json({ trackingDetails });

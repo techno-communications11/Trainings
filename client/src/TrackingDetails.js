@@ -234,45 +234,70 @@ const TrackingDetails = () => {
       return updatedMarkets;
     });
   };
+
   const handleSortChange = (column, order) => {
-    setFilteredDetails(prevDetails => {
-      const sortedData = [...prevDetails].sort((a, b) => {
-        if (column === "assigneddate") {
-          const dateA = new Date(a.assignedDate);
-          const dateB = new Date(b.assignedDate);
-          return order === "asc" ? dateA - dateB : dateB - dateA;
-        }
-        
-        if (column === "duration") {
-          const durationA = calculateDuration(a.assignedDate);
-          const durationB = calculateDuration(b.assignedDate);
-          return order === "asc" ? durationA - durationB : durationB - durationA;
-        }
-        
-        return 0;
-      });
-      
-      return sortedData;
+    setFilteredDetails((prevDetails) => {
+        // Sort based on the selected column first (status, assigneddate, etc.)
+        const sortedData = [...prevDetails].sort((a, b) => {
+            let result = 0;
+
+            if (column === "assigneddate") {
+                const dateA = new Date(a.assignedDate);
+                const dateB = new Date(b.assignedDate);
+                result = order === "asc" ? dateA - dateB : dateB - dateA;
+            } else if (column === "duration") {
+                const durationA = calculateDuration(a.assignedDate);
+                const durationB = calculateDuration(b.assignedDate);
+                result = order === "asc" ? durationA - durationB : durationB - durationA;
+            } else if (column === "dm") {
+                result = order === "asc" ? a.dm.localeCompare(b.dm) : b.dm.localeCompare(a.dm);
+            } else if (column === "status") {
+                result = order === "asc" ? a.status.localeCompare(b.status) : b.status.localeCompare(a.status);
+            }
+
+            return result;
+        });
+
+        // Group by 'dm' after sorting to ensure rows with the same 'dm' value are together
+        const groupedData = sortedData.reduce((groups, row) => {
+            if (!groups[row.dm]) {
+                groups[row.dm] = [];
+            }
+            groups[row.dm].push(row);
+            return groups;
+        }, {});
+
+        // Flatten the grouped data back into a single array
+        const finalSortedData = Object.values(groupedData).flat();
+
+        return finalSortedData;
     });
-    
+
     setActivePopover(null);
-  };
+};
+
+
+
+
 
   // Render popover for filters
   const renderPopover = (header) => (
-    <Popover id={`popover-${header}`} className="shadow-sm">
-      <Popover.Body className="p-0">
-        <div className="list-group list-group-flush">
+    <Popover id={`popover-${header}`} className="shadow-sm ">
+      <Popover.Body className="p-0 ">
+        <div className="list-group list-group-flush ">
           {header === "Market" && (
             <>
               <button
-                className="list-group-item list-group-item-action"
+                className="list-group-item list-group-item-action text-success"
                 onClick={() => setSelectedMarkets([])}
               >
                 All
               </button>
               {markets.map((market) => (
-                <div key={market} className="list-group-item d-flex align-items-center">
+                <div
+                  key={market}
+                  className="list-group-item d-flex align-items-center text-success"
+                >
                   <input
                     type="checkbox"
                     className="me-2"
@@ -280,10 +305,11 @@ const TrackingDetails = () => {
                     onChange={() => handleMarketFilter(market)}
                     id={`market-${market}`}
                   />
+                  
                   <label
                     htmlFor={`market-${market}`}
                     className="mb-0 flex-grow-1 cursor-pointer text-capitalize"
-                    style={{cursor:'pointer'}}
+                    style={{ cursor: "pointer" }}
                   >
                     {market}
                   </label>
@@ -292,50 +318,64 @@ const TrackingDetails = () => {
             </>
           )}
           {["Status", "DM"].includes(header) && (
-          <>
-            <button
-              className="list-group-item list-group-item-action"
-              onClick={() => handleFilterChange("", header.toLowerCase())}
-            >
-              All
-            </button>
-            {[
-              ...new Set(
-                filteredDetails.map((detail) => detail[header.toLowerCase()])
-              ),
-            ].map((value) => (
+            <>
               <button
-                key={value}
-                className="list-group-item list-group-item-action"
-                onClick={() => handleFilterChange(value, header.toLowerCase())}
+                className="list-group-item list-group-item-action text-success"
+                onClick={() => handleFilterChange("", header.toLowerCase())}
               >
-                {value}
+                All
               </button>
-            ))}
-          </>
-        )}
-        {["AssignedDate", "Duration"].includes(header) && (
-          <>
-            <button
-              className="list-group-item list-group-item-action"
-              onClick={() => handleFilterChange("", header.toLowerCase())}
-            >
-              Clear Sort
-            </button>
-            <button
-              className="list-group-item list-group-item-action"
-              onClick={() => handleSortChange(header.toLowerCase(), "asc")}
-            >
-              ↑ Ascending
-            </button>
-            <button
-              className="list-group-item list-group-item-action"
-              onClick={() => handleSortChange(header.toLowerCase(), "desc")}
-            >
-              ↓ Descending
-            </button>
-          </>
-        )}
+              {["Status","DM"].includes(header)&&(<><button
+                className="list-group-item list-group-item-action text-success"
+                onClick={() => handleSortChange(header.toLowerCase(), "asc")}
+              >
+                ↑ Ascending
+              </button>
+              <button
+                className="list-group-item list-group-item-action text-success"
+                onClick={() => handleSortChange(header.toLowerCase(), "desc")}
+              >
+                ↓ Descending
+              </button></>)}
+              {[
+                ...new Set(
+                  filteredDetails.map((detail) => detail[header.toLowerCase()])
+                ),
+              ].map((value) => (
+                <button
+                  key={value}
+                  className="list-group-item list-group-item-action text-success"
+                  onClick={() =>
+                    handleFilterChange(value, header.toLowerCase())
+                  }
+                >
+                  {value}
+                </button>
+              ))}
+            </>
+          )}
+          {["AssignedDate", "Duration"].includes(header) && (
+            <>
+              <button
+                className="list-group-item list-group-item-action text-success"
+                onClick={() => handleFilterChange("", header.toLowerCase())}
+              >
+                Clear Sort
+              </button>
+              <button
+                className="list-group-item list-group-item-action text-success"
+                onClick={() => handleSortChange(header.toLowerCase(), "asc")}
+              >
+                ↑ Ascending
+              </button>
+              <button
+                className="list-group-item list-group-item-action text-success"
+                onClick={() => handleSortChange(header.toLowerCase(), "desc")}
+              >
+                ↓ Descending
+              </button>
+            </>
+          )}
         </div>
       </Popover.Body>
     </Popover>
@@ -380,6 +420,16 @@ const TrackingDetails = () => {
       </Container>
     );
   }
+
+  const getStatusClass = (status) => {
+    switch (status) {
+      case "RDM Approval":
+        return "ms-2 shadow-lg bg-success text-white";
+
+      default:
+        return "";
+    }
+  };
 
   return (
     <div className="card shadow-sm mt-2">
@@ -430,7 +480,10 @@ const TrackingDetails = () => {
                       : color === "Yellow"
                       ? "#ffc107"
                       : "rgba(108, 117, 125, 0.25)",
-                  border: filters.color === color ? "2px solid #000" : "1px solid #dee2e6",
+                  border:
+                    filters.color === color
+                      ? "2px solid #000"
+                      : "1px solid #dee2e6",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -479,9 +532,13 @@ const TrackingDetails = () => {
                         }
                       >
                         {header}
-                        {["DM", "Market", "Duration", "AssignedDate", "Status"].includes(
-                          header
-                        ) && (
+                        {[
+                          "DM",
+                          "Market",
+                          "Duration",
+                          "AssignedDate",
+                          "Status",
+                        ].includes(header) && (
                           <MdOutlineKeyboardArrowDown
                             className={`transition-transform ${
                               activePopover === header ? "rotate-180" : ""
@@ -499,14 +556,24 @@ const TrackingDetails = () => {
                 <tr key={index} className={getRowStyle(detail.assignedDate)}>
                   <td className="text-center">{index + 1}</td>
                   <td className="text-center">{detail.ntid}</td>
-                  <td className="text-center text-capitalize">{detail.name}</td>
-                  <td className="text-center">{detail.status}</td>
+                  <td className="text-center text-capitalize">
+                    {detail.name?.toLowerCase()}
+                  </td>
+                  <td
+                    className={`text-center ms-2 ${getStatusClass(
+                      detail.status
+                    )}`}
+                  >
+                    {detail.status}
+                  </td>
                   <td className="text-center">
                     {detail.assignedDate.split(" ")[0]}
                   </td>
                   <td className="text-center">
                     {`${calculateDuration(detail.assignedDate)} ${
-                      calculateDuration(detail.assignedDate) > 1 ? "days" : "day"
+                      calculateDuration(detail.assignedDate) > 1
+                        ? "days"
+                        : "day"
                     }`}
                   </td>
                   <td className="text-center">
