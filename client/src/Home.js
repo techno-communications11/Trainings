@@ -221,7 +221,7 @@ function Home() {
                 <span>Training Pending</span>
             </th>
             <th>
-                <span>Pass Due</span>
+                <span>Past Due</span>
             </th>
             <th>Total</th>
           </tr>
