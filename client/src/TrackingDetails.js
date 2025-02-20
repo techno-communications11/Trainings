@@ -12,7 +12,9 @@ const TrackingDetails = () => {
   const [trackingDetails, setTrackingDetails] = useState([]);
   const [filteredDetails, setFilteredDetails] = useState([]);
   const [markets, setMarkets] = useState([]);
+  const [names, setNames] = useState([]);
   const [selectedMarkets, setSelectedMarkets] = useState([]);
+  const [selectedName, setSelectedName] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [date, setDate] = useState(null);
@@ -42,6 +44,7 @@ const TrackingDetails = () => {
         const data = await response.json();
         setTrackingDetails(data.trackingDetails);
         setFilteredDetails(data.trackingDetails);
+        console.log(data.trackingDetails);
 
         // Extract unique dates and markets
         const dates = [
@@ -54,7 +57,13 @@ const TrackingDetails = () => {
             data.trackingDetails.map((detail) => detail.Market.toLowerCase())
           ),
         ].sort();
+        const uniqueNames = [
+          ...new Set(
+            data.trackingDetails.map((detail) => detail.name.toLowerCase())
+          ),
+        ].sort();
         setMarkets(uniqueMarkets);
+        setNames(uniqueNames);
       } catch (err) {
         setError(
           "Error fetching tracking details. Please check the server or network connection."
@@ -93,6 +102,10 @@ const TrackingDetails = () => {
         const marketMatch =
           selectedMarkets.length === 0 ||
           selectedMarkets.includes(detail.Market.toLowerCase());
+          //name filter
+          const nameMatch =
+          selectedName.length === 0 ||
+          selectedName.includes(detail.name.toLowerCase());
 
         // Status filter (case-insensitive)
         const statusMatch =
@@ -104,7 +117,7 @@ const TrackingDetails = () => {
           !filters.dm ||
           detail.dm.toLowerCase().includes(filters.dm.toLowerCase());
 
-        return colorMatch && marketMatch && statusMatch && dmMatch;
+        return colorMatch && marketMatch && statusMatch && dmMatch&&nameMatch;
       });
 
       setFilteredDetails(filtered);
@@ -113,7 +126,7 @@ const TrackingDetails = () => {
     if (trackingDetails.length > 0) {
       filterData();
     }
-  }, [filters, selectedMarkets, trackingDetails]);
+  }, [filters, selectedMarkets, trackingDetails,selectedName]);
 
   // Helper functions
   const getChicagoDate = () => {
@@ -235,6 +248,18 @@ const TrackingDetails = () => {
     });
   };
 
+  const handleNameFilter = (name) => {
+    const nameLower = name.toLowerCase();
+    console.log(nameLower,"sss");
+    setSelectedName((prevName) => {
+      const updatedName = prevName.includes(nameLower)
+        ? prevName.filter((m) => m !== nameLower)
+        : [...prevName, nameLower];
+        console.log(updatedName,"kkk");
+      return updatedName;
+    });
+  };
+
   const handleSortChange = (column, order) => {
     setFilteredDetails((prevDetails) => {
         // Sort based on the selected column first (status, assigneddate, etc.)
@@ -316,6 +341,42 @@ const TrackingDetails = () => {
                 </div>
               ))}
             </>
+          )}
+          {(
+            header === "Name" &&
+            (
+              <>
+              <button
+                className="list-group-item list-group-item-action text-success"
+                onClick={() => setSelectedMarkets([])}
+              >
+                All
+              </button>
+              {names.map((name) => (
+                <div
+                  key={name}
+                  className="list-group-item d-flex align-items-center text-success"
+                >
+                  <input
+                    type="checkbox"
+                    className="me-2"
+                    checked={selectedName.includes(name)}
+                    onChange={() => handleNameFilter(name)}
+                    id={`market-${name}`}
+                  />
+                  
+                  <label
+                    htmlFor={`market-${name}`}
+                    className="mb-0 flex-grow-1 cursor-pointer text-capitalize"
+                    style={{ cursor: "pointer" }}
+                  >
+                    {name}
+                  </label>
+                </div>
+              ))}
+            </>
+
+            )
           )}
           {["Status", "DM"].includes(header) && (
             <>
@@ -534,6 +595,7 @@ const TrackingDetails = () => {
                         {header}
                         {[
                           "DM",
+                          "Name",
                           "Market",
                           "Duration",
                           "AssignedDate",

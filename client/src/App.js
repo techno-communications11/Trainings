@@ -14,6 +14,10 @@ import Users from "./UpdatePasswordForm";
 function App() {
   // Check if the user is authenticated
   const isAuthenticated = Boolean(localStorage.getItem("token"));
+  
+  if(isAuthenticated && window.location.pathname === '/'){
+    window.location.href = '/home';
+  }
 
   return (
     <div className="App">
