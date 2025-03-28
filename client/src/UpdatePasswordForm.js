@@ -3,6 +3,7 @@ import axios from "axios";
 import { HiMiniEye } from "react-icons/hi2";
 import { BsFillEyeSlashFill } from "react-icons/bs";
 import { useNavigate } from "react-router-dom";
+import CustomAlert from "./CustomAlert";
 
 const UpdatePasswordForm = () => {
   const [email, setEmail] = useState("");
@@ -10,41 +11,84 @@ const UpdatePasswordForm = () => {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
   const [otpVerified, setOtpVerified] = useState(false);
   const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState({
+    sendOtp: false,
+    verifyOtp: false,
+    updatePassword: false
+  });
+  const [alert, setAlert] = useState({
+    show: false,
+    message: "",
+    type: "" // 'success' or 'error'
+  });
+
+  const showAlertMessage = (message, type) => {
+    setAlert({
+      show: true,
+      message,
+      type
+    });
+    setTimeout(() => {
+      setAlert(prev => ({ ...prev, show: false }));
+    }, 5000);
+  };
 
   const handleSendOtp = async () => {
+    if (!email) {
+      showAlertMessage("Please enter your email address", "error");
+      return;
+    }
+
+    setIsLoading(prev => ({ ...prev, sendOtp: true }));
+    setError("");
+    
     try {
       const response = await axios.post(
         `${process.env.REACT_APP_BASE_URL}/send-otp`,
         { email }
       );
+      
       if (response.status === 200) {
-        setSuccess("OTP sent to your email.");
+        showAlertMessage("OTP sent to your email.", "success");
         setOtpSent(true);
       }
     } catch (error) {
-      setError("Failed to send OTP. Please try again.");
+      const message = error.response?.data?.message || "Failed to send OTP. Please try again.";
+      showAlertMessage(message, "error");
+    } finally {
+      setIsLoading(prev => ({ ...prev, sendOtp: false }));
     }
   };
 
   const handleVerifyOtp = async () => {
+    if (!otp) {
+      showAlertMessage("Please enter the OTP", "error");
+      return;
+    }
+
+    setIsLoading(prev => ({ ...prev, verifyOtp: true }));
+    setError("");
+    
     try {
       const response = await axios.post(
         `${process.env.REACT_APP_BASE_URL}/verify-otp`,
         { email, otp }
       );
+      
       if (response.status === 200) {
-        setSuccess("OTP verified successfully.");
+        showAlertMessage("OTP verified successfully.", "success");
         setOtpVerified(true);
-        setError("");
       }
     } catch (error) {
-      setError("Invalid OTP. Please try again.");
+      const message = error.response?.data?.message || "Invalid OTP. Please try again.";
+      showAlertMessage(message, "error");
+    } finally {
+      setIsLoading(prev => ({ ...prev, verifyOtp: false }));
     }
   };
 
@@ -52,29 +96,32 @@ const UpdatePasswordForm = () => {
     e.preventDefault();
 
     if (newPassword !== confirmPassword) {
-      setError("New password and confirm password do not match.");
+      showAlertMessage("New password and confirm password do not match.", "error");
       return;
     }
     if (newPassword.length < 6) {
-      setError("Password should be at least 6 characters long.");
+      showAlertMessage("Password should be at least 6 characters long.", "error");
       return;
     }
-    setError("");
 
+    setIsLoading(prev => ({ ...prev, updatePassword: true }));
+    setError("");
+    
     try {
       const response = await axios.put(
         `${process.env.REACT_APP_BASE_URL}/update-password`,
-        {
-          email,
-          password: newPassword,
-        }
+        { email, password: newPassword }
       );
+      
       if (response.status === 200) {
-        setSuccess("Password updated successfully.");
+        showAlertMessage("Password updated successfully. Redirecting to login...", "success");
         setTimeout(() => navigate("/"), 2000);
       }
     } catch (error) {
-      setError("Failed to update password.");
+      const message = error.response?.data?.message || "Failed to update password.";
+      showAlertMessage(message, "error");
+    } finally {
+      setIsLoading(prev => ({ ...prev, updatePassword: false }));
     }
   };
 
@@ -86,31 +133,13 @@ const UpdatePasswordForm = () => {
             <h4 className="mb-0">Update Password</h4>
           </div>
           <div className="card-body p-4">
-            {error && (
-              <div
-                className="alert alert-danger alert-dismissible fade show"
-                role="alert"
-              >
-                {error}
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => setError("")}
-                ></button>
-              </div>
-            )}
-            {success && (
-              <div
-                className="alert alert-success alert-dismissible fade show"
-                role="alert"
-              >
-                {success}
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => setSuccess("")}
-                ></button>
-              </div>
+            {/* Custom Alert */}
+            {alert.show && (
+              <CustomAlert
+                message={alert.message}
+                type={alert.type}
+                onClose={() => setAlert(prev => ({ ...prev, show: false }))}
+              />
             )}
 
             <form onSubmit={handleSubmit} className="needs-validation">
@@ -131,6 +160,7 @@ const UpdatePasswordForm = () => {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
+                      disabled={isLoading.sendOtp}
                     />
                   </div>
                   <div className="d-grid gap-2 mt-4">
@@ -138,8 +168,16 @@ const UpdatePasswordForm = () => {
                       type="button"
                       className="btn btn-primary btn-lg"
                       onClick={handleSendOtp}
+                      disabled={isLoading.sendOtp}
                     >
-                      Send OTP
+                      {isLoading.sendOtp ? (
+                        <>
+                          <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                          Sending...
+                        </>
+                      ) : (
+                        "Send OTP"
+                      )}
                     </button>
                   </div>
                 </div>
@@ -162,6 +200,7 @@ const UpdatePasswordForm = () => {
                       value={otp}
                       onChange={(e) => setOtp(e.target.value)}
                       required
+                      disabled={isLoading.verifyOtp}
                     />
                   </div>
                   <div className="d-grid gap-2 mt-4">
@@ -169,8 +208,16 @@ const UpdatePasswordForm = () => {
                       type="button"
                       className="btn btn-primary btn-lg"
                       onClick={handleVerifyOtp}
+                      disabled={isLoading.verifyOtp}
                     >
-                      Verify OTP
+                      {isLoading.verifyOtp ? (
+                        <>
+                          <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                          Verifying...
+                        </>
+                      ) : (
+                        "Verify OTP"
+                      )}
                     </button>
                   </div>
                 </div>
@@ -194,11 +241,13 @@ const UpdatePasswordForm = () => {
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
                         required
+                        disabled={isLoading.updatePassword}
                       />
                       <button
                         type="button"
                         className="btn btn-light border"
                         onClick={() => setShowNewPassword(!showNewPassword)}
+                        disabled={isLoading.updatePassword}
                       >
                         {showNewPassword ? (
                           <HiMiniEye size={20} />
@@ -228,6 +277,7 @@ const UpdatePasswordForm = () => {
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         required
+                        disabled={isLoading.updatePassword}
                       />
                       <button
                         type="button"
@@ -235,6 +285,7 @@ const UpdatePasswordForm = () => {
                         onClick={() =>
                           setShowConfirmPassword(!showConfirmPassword)
                         }
+                        disabled={isLoading.updatePassword}
                       >
                         {showConfirmPassword ? (
                           <HiMiniEye size={20} />
@@ -246,8 +297,19 @@ const UpdatePasswordForm = () => {
                   </div>
 
                   <div className="d-grid gap-2">
-                    <button type="submit" className="btn btn-primary btn-lg">
-                      Update Password
+                    <button 
+                      type="submit" 
+                      className="btn btn-primary btn-lg"
+                      disabled={isLoading.updatePassword}
+                    >
+                      {isLoading.updatePassword ? (
+                        <>
+                          <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                          Updating...
+                        </>
+                      ) : (
+                        "Update Password"
+                      )}
                     </button>
                   </div>
                 </>

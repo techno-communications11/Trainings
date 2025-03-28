@@ -62,8 +62,11 @@ function handleFileUpload(req, res) {
     return res.status(400).json({ message: "No files were uploaded." });
   }
 
-  const file1Path = path.join("uploads", req.files.file1[0].originalname);
-  const file2Path = path.join("uploads", req.files.file2[0].originalname);
+  // const file1Path = path.join("uploads", req.files.file1[0].originalname);
+  // const file2Path = path.join("uploads", req.files.file2[0].originalname);
+
+  const file1Path = req.files.file1[0].path;
+const file2Path = req.files.file2[0].path;
 
   const matchedRows = [];
   const rdmApproval = new Set();
@@ -130,7 +133,7 @@ function handleFileUpload(req, res) {
               });
             }
 
-            console.log("Table truncated successfully.");
+            // console.log("Table truncated successfully.");
 
             // Prepare data for database insertion
             const insertData = [];
@@ -163,7 +166,7 @@ function handleFileUpload(req, res) {
                   });
                 }
 
-                console.log("Data inserted successfully.");
+                // console.log("Data inserted successfully.");
                 // Send response
                 res.status(200).json({
                   message: "Files processed successfully!",

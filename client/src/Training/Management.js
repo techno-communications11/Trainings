@@ -29,6 +29,7 @@ function Management() {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
+      crediantals: 'include', // Important for sending cookies
     };
 
     axios.post(url, formData, config)

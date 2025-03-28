@@ -1,66 +1,99 @@
 const fs = require('fs');
 const path = require('path');
 const csv = require('csv-parser');
-const db = require('../db.js'); // Update the path to your database connection
+const db = require('../db.js');
 
 const handleMarketStructureFileUpload = (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: 'No files were uploaded.' });
   }
 
-  const filePath = path.join('uploads', req.file.originalname);
+  const filePath = req.file.path;
+  const results = [];
 
   // Read and parse the CSV file
-  const results = [];
   fs.createReadStream(filePath)
     .pipe(csv())
     .on('data', (data) => {
-      // Map the file columns to database fields
-      const transformedRow = {
-        mainstore: data['Store Name'],
-        dm: data['DM Name'],
-        doorcode: data['Door Code'],
-        Market: data['Market'],
-      };
-      results.push(transformedRow);
+      results.push({
+        mainstore: data['Store Name'] || '',
+        dm: data['DM Name'] || '',
+        doorcode: data['Door Code'] || '',
+        Market: data['Market'] || ''
+      });
     })
     .on('end', () => {
-      // Step 1: Truncate the table before inserting new data
-      const truncateQuery = 'TRUNCATE TABLE marketstructure';
-
-      db.query(truncateQuery, (err) => {
+      // Get a database connection
+      db.getConnection((err, connection) => {
         if (err) {
-          console.error('Error truncating table:', err);
-          return res.status(500).json({ message: 'Failed to truncate the table.' });
+          console.error('Error getting database connection:', err);
+          try { fs.unlinkSync(filePath); } catch (e) {}
+          return res.status(500).json({ message: 'Database connection failed' });
         }
 
-        // Step 2: Insert the new data
-        const insertQuery = 'INSERT INTO marketstructure (mainstore, dm, doorcode, Market) VALUES (?, ?, ?, ?)';
-        
-        results.forEach((row) => {
-          db.query(insertQuery, [row.mainstore, row.dm, row.doorcode, row.Market], (err, result) => {
-            if (err) {
-              console.error('Database insertion failed:', err);
+        // Begin transaction
+        connection.beginTransaction((beginErr) => {
+          if (beginErr) {
+            connection.release();
+            try { fs.unlinkSync(filePath); } catch (e) {}
+            return res.status(500).json({ message: 'Transaction failed to start' });
+          }
+
+          // Step 1: Truncate the table
+          connection.query('TRUNCATE TABLE marketstructure', (truncateErr) => {
+            if (truncateErr) {
+              return connection.rollback(() => {
+                connection.release();
+                try { fs.unlinkSync(filePath); } catch (e) {}
+                res.status(500).json({ message: 'Failed to truncate table' });
+              });
             }
+
+            // Step 2: Insert the new data in batches if there are results
+            if (results.length === 0) {
+              return connection.commit((commitErr) => {
+                connection.release();
+                try { fs.unlinkSync(filePath); } catch (e) {}
+                if (commitErr) {
+                  return res.status(500).json({ message: 'Commit failed' });
+                }
+                res.status(200).json({ message: 'No data to insert' });
+              });
+            }
+
+            const insertQuery = 'INSERT INTO marketstructure (mainstore, dm, doorcode, Market) VALUES ?';
+            connection.query(insertQuery, [results.map(r => [r.mainstore, r.dm, r.doorcode, r.Market])], (insertErr) => {
+              if (insertErr) {
+                return connection.rollback(() => {
+                  connection.release();
+                  try { fs.unlinkSync(filePath); } catch (e) {}
+                  res.status(500).json({ message: 'Insert failed' });
+                });
+              }
+
+              // Commit transaction
+              connection.commit((commitErr) => {
+                connection.release();
+                try { fs.unlinkSync(filePath); } catch (e) {}
+                
+                if (commitErr) {
+                  return res.status(500).json({ message: 'Commit failed' });
+                }
+                
+                res.status(200).json({
+                  message: 'File processed successfully',
+                  recordsInserted: results.length
+                });
+              });
+            });
           });
-        });
-
-        // Remove the uploaded file after successful processing and insertion
-        try {
-          fs.unlinkSync(filePath); // Remove the file
-          console.log(`File ${filePath} deleted successfully.`);
-        } catch (err) {
-          console.error(`Error deleting file: ${err}`);
-        }
-
-        res.status(200).json({
-          message: 'File processed and data inserted into the database successfully.',
         });
       });
     })
     .on('error', (err) => {
       console.error('Error reading the file:', err);
-      res.status(500).json({ message: 'Failed to process the file.' });
+      try { fs.unlinkSync(filePath); } catch (e) {}
+      res.status(500).json({ message: 'Failed to process the file' });
     });
 };
 

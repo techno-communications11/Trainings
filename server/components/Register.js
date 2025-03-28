@@ -7,9 +7,10 @@ const bcrypt = require('bcryptjs');
 
 // The Register function
 const Register = (req, res) => {
-  const { email, password } = req.body;
+  const { email, password ,role} = req.body;
 
-  if (!email || !password) {
+  if (!email || !password || !role) {
+    // Check if all required fields are provided
     return res.status(400).json({ message: 'Please provide all required fields' });
   }
 
@@ -33,8 +34,8 @@ const Register = (req, res) => {
       }
 
       // Insert the new user into the database
-      const insertQuery = 'INSERT INTO users (email, password) VALUES (?, ?)';
-      db.query(insertQuery, [email, hashedPassword], (err, result) => {
+      const insertQuery = 'INSERT INTO users (email, password, role) VALUES (?, ?,?)';
+      db.query(insertQuery, [email, hashedPassword,role], (err, result) => {
         if (err) {
           console.error(err);
           return res.status(500).json({ message: 'Error inserting user' });

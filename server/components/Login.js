@@ -1,46 +1,56 @@
-const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const db = require('../db');
-const dotenv = require('dotenv');
-dotenv.config();
+const bcrypt = require('bcrypt');
+const db = require('../db').promise(); // 👈 Use .promise() to enable async/await
 
-const Login = async (req, res) => {
+async function Login(req, res) {
   const { email, password } = req.body;
+  console.log('Login request received:', req.body);
+  
 
   if (!email || !password) {
-    return res.status(400).json({ message: 'Please provide both email and password.' });
+    return res.status(400).json({ error: 'Email and password are required.' });
   }
 
   try {
-    const [result] = await db.promise().query('SELECT * FROM users WHERE email = ?', [email]);
+    const query = 'SELECT * FROM users WHERE email = ?';
+    const [rows] = await db.execute(query, [email]); // ✅ Now properly returns [rows]
+    console.log('Database query results:', rows);
 
-    if (result.length === 0) {
-      return res.status(400).json({ message: 'User not found' });
+    if (!rows || rows.length === 0) {
+      return res.status(404).json({ error: 'User not found.' });
     }
 
-    const isMatch = await bcrypt.compare(password, result[0].password);
-    if (!isMatch) {
-      return res.status(400).json({ message: 'Invalid credentials' });
+    const user = rows[0];
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    
+    if (!isPasswordValid) {
+      return res.status(401).json({ error: 'Invalid email or password.' });
     }
 
     const token = jwt.sign(
-      {
-        id: result[0].id,
-        email: result[0].email,
-        role: result[0].role,
-      },
+      { id: user.id, email: user.email, role: user.role },
       process.env.JWT_SECRET,
-      { expiresIn: '1h' }
+      { expiresIn: '7d' }
     );
 
-    res.status(200).json({
-      message: 'Login successful!',
-      token,
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7*24*60 * 60 * 1000,
     });
-  } catch (err) {
-    console.error('Error logging in:', err.message || err);
-    res.status(500).json({ message: 'Database error, please try again.' });
-  }
-};
 
-module.exports = { Login };
+    return res.status(200).json({ 
+      message: 'Login successful.',
+      user: { id: user.id, email: user.email, department: user.role}
+    });
+  } catch (error) {
+    console.error('Error during login:', error);
+    return res.status(500).json({ 
+      error: 'An error occurred during login.',
+      details: error.message 
+    });
+  }
+}
+
+module.exports = Login;

@@ -130,3 +130,159 @@ input:focus, button:focus {
 }
 
 
+
+
+
+
+
+
+.bg-blob {
+  width: 300px;
+  height: 300px;
+  background: rgba(225, 1, 116, 0.1);
+  border-radius: 50%;
+  transform: rotate(45deg);
+}
+
+.top-blob {
+  top: -10%;
+  left: -10%;
+}
+
+.bottom-blob {
+  bottom: -10%;
+  right: -10%;
+  width: 400px;
+  height: 400px;
+  background: rgba(225, 1, 116, 0.05);
+}
+
+.login-heading {
+  color: #E10174;
+  font-weight: bold;
+  font-size: 4rem;
+  letter-spacing: 2px;
+  text-shadow: 2px 2px 4px rgba(225, 1, 116, 0.1);
+}
+
+.login-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(225, 1, 116, 0.1);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  border-radius: 1rem;
+}
+
+.login-input {
+  border-color: #E10174;
+  background-color: rgba(255, 255, 255, 0.8);
+  border-radius: 50px;
+  text-align: center;
+  padding-left: 2.5rem;
+}
+
+.input-icon {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #E10174;
+  font-size: 1.125rem;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: #E10174;
+}
+
+.login-button {
+  background-color: #E10174;
+  border-color: #E10174;
+  padding: 0.75rem;
+  box-shadow: 0 10px 20px rgba(225, 1, 116, 0.3);
+  border-radius: 50px;
+  color: white;
+}
+
+.login-button:disabled {
+  opacity: 0.7;
+}
+
+.login-subheading {
+  color: #E10174;
+}
+
+
+
+/* General Styles */
+body {
+  font-family: 'Poppins', sans-serif;
+  background-color: #f8f9fa;
+}
+
+.min-vh-100 {
+  min-height: 100vh;
+}
+
+.card {
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.card-body {
+  padding: 2rem;
+}
+
+.form-control,
+.form-select {
+  border-radius: 8px;
+  border: 1px solid #ced4da;
+  transition: all 0.3s ease;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.btn-primary {
+  background-color: #0d6efd;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  background-color: #0b5ed7;
+}
+
+.alert {
+  border-radius: 8px;
+}
+
+.input-group-text {
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.spinner-border {
+  width: 1rem;
+  height: 1rem;
+}
+
+.text-center a {
+  color: #0d6efd;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.text-center a:hover {
+  text-decoration: underline;
+}

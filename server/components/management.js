@@ -8,7 +8,7 @@ const handleManagementFileUpload = (req, res) => {
     return res.status(400).json({ message: "No files were uploaded." });
   }
 
-  const file1Path = path.join("uploads", req.file.originalname);
+  const file1Path = req.file.path;
 
   // Read and parse the CSV file
   const results = [];

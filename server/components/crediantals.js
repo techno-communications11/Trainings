@@ -8,13 +8,17 @@ const handleCrediantalsFileUpload = (req, res) => {
     return res.status(400).json({ message: 'No files were uploaded.' });
   }
 
-  // Sanitize file name and define file path
-  const sanitizedFileName = path.basename(req.file.originalname);
-  const file1Path = path.join('uploads', sanitizedFileName);
+  // Use the stored file path from Multer (req.file.path)
+  const filePath = req.file.path;
+
+  // Verify file exists
+  if (!fs.existsSync(filePath)) {
+    return res.status(400).json({ message: 'Uploaded file not found.' });
+  }
 
   // Read and parse the CSV file
   const results = [];
-  fs.createReadStream(file1Path)
+  fs.createReadStream(filePath)
     .pipe(
       csv({
         // Normalize headers to match database column names
@@ -38,7 +42,7 @@ const handleCrediantalsFileUpload = (req, res) => {
           return res.status(500).json({ message: 'Failed to truncate the table.' });
         }
 
-        console.log('Table truncated successfully.');
+        // console.log('Table truncated successfully.');
 
         // Step 2: Insert new data using INSERT IGNORE to skip duplicates
         const insertPromises = results.map((row) => {
@@ -47,13 +51,13 @@ const handleCrediantalsFileUpload = (req, res) => {
           const name = row.name; // Make sure it's extracting the name correctly
 
           // Log the values before inserting
-          console.log(`Inserting NTID: ${ntid}, Doorcode: ${doorcode}, Name: ${name}`);
+          // console.log(`Inserting NTID: ${ntid}, Doorcode: ${doorcode}, Name: ${name}`);
 
           const sql = 'INSERT IGNORE INTO credentials (ntid, doorcode, Name) VALUES (?, ?, ?)';
           return new Promise((resolve, reject) => {
             db.query(sql, [ntid, doorcode, name], (err, result) => {
               if (err) {
-                console.error('Database insertion failed:', err);
+                // console.error('Database insertion failed:', err);
                 reject(err);
               } else {
                 resolve(result);
@@ -72,8 +76,8 @@ const handleCrediantalsFileUpload = (req, res) => {
 
             // Remove the uploaded file after data insertion
             try {
-              fs.unlinkSync(file1Path); // Remove the file
-              console.log(`File ${file1Path} deleted successfully.`);
+              fs.unlinkSync(filePath); // Remove the file
+              // console.log(`File ${filePath} deleted successfully.`);
             } catch (err) {
               console.error(`Error deleting file: ${err}`);
             }

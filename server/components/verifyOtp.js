@@ -1,57 +1,56 @@
-const db = require('../db'); // Import the connection pool
+const db = require('../db').promise();
 
 const verifyOtp = async (req, res) => {
   const { email, otp } = req.body;
-  // console.log('Request body:', req.body);
-
+  
   try {
-    // Get a connection from the pool
-    db.getConnection((err, connection) => {
-      if (err) {
-        console.error('Error getting connection:', err.message || err);
-        return res.status(500).json({ message: 'Database connection failed' });
-      }
+    const [rows] = await db.query(
+      `SELECT otp, otp_expiry FROM users WHERE email = ?`,
+      [email]
+    );
 
-      // Use promise-based queries
-      connection
-        .promise()
-        .query(`SELECT otp, otp_expiry FROM users WHERE email = ?`, [email])
-        .then(([rows]) => {
-          console.log('Query Result:', rows);
+    if (!rows || rows.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
 
-          if (!rows || rows.length === 0) {
-            return res.status(404).json({ message: 'User not found' });
-          }
+    const { otp: storedOtp, otp_expiry: otpExpiry } = rows[0];
 
-          const { otp: storedOtp, otp_expiry: otpExpiry } = rows[0];
-          console.log('Stored OTP:', storedOtp);
-          console.log('Incoming OTP:', otp);
+    // Validate OTP
+    if (otp !== storedOtp) {
+      return res.status(400).json({ message: 'Invalid OTP' });
+    }
 
-          // Validate OTP
-          if (otp !== storedOtp) {
-            return res.status(400).json({ message: 'Invalid OTP' });
-          }
+    // Get current time in UTC to match database time
+    const currentTime = new Date();
+    const expiryTime = new Date(otpExpiry);
 
-          // Validate OTP expiry
-          const currentTime = new Date();
-          if (currentTime > new Date(otpExpiry)) {
-            return res.status(400).json({ message: 'OTP has expired' });
-          }
+    // Add debugging logs
+    console.log(`Current time (UTC): ${currentTime.toISOString()}`);
+    console.log(`OTP expiry time: ${expiryTime.toISOString()}`);
+    console.log(`Time difference (ms): ${expiryTime - currentTime}`);
 
-          res.status(200).json({ message: 'OTP verified successfully' });
-        })
-        .catch(error => {
-          console.error('Error executing query:', error);
-          res.status(500).json({ message: 'Failed to verify OTP' });
-        })
-        .finally(() => {
-          // Release the connection back to the pool
-          connection.release();
-        });
-    });
+    // Validate OTP expiry with buffer (1 minute grace period)
+    if (currentTime > expiryTime) {
+      return res.status(400).json({ 
+        message: 'OTP has expired',
+        details: {
+          currentTime: currentTime.toISOString(),
+          expiryTime: expiryTime.toISOString()
+        }
+      });
+    }
+
+    // Clear the OTP after successful verification
+    await db.query(
+      `UPDATE users SET otp = NULL, otp_expiry = NULL WHERE email = ?`,
+      [email]
+    );
+
+    res.status(200).json({ message: 'OTP verified successfully' });
+
   } catch (error) {
     console.error('Error verifying OTP:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ message: 'Failed to verify OTP' });
   }
 };
 

@@ -1,5 +1,5 @@
 const bcrypt = require('bcrypt');
-const db = require('../db');
+const db = require('../db'); // Use .promise() to enable async/await
 
 const updatepassword = (req, res) => {
   const { email, password } = req.body;

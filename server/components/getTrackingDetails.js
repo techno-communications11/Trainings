@@ -1,4 +1,4 @@
-const db = require('../db'); // Update path as per your project structure
+const db = require('../db.js'); // Update path as per your project structure
 
 const getTrackingDetails = async (req, res) => {
   // console.log('Displayed data...');

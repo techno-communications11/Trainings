@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { FaCloudUploadAlt, FaFile, FaCheckCircle } from 'react-icons/fa';
 
-function Management() {
+function MarketStructure() {
   const [file, setFile] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState('');
@@ -21,7 +21,7 @@ function Management() {
     setError('');
     setSuccess('');
 
-    const url = `${process.env.REACT_APP_BASE_URL}/crediantalsFile`;
+    const url = `${process.env.REACT_APP_BASE_URL}/marketstructureFile`;
     const formData = new FormData();
     formData.append('file', file);
 
@@ -29,6 +29,7 @@ function Management() {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
+      Credentialials: 'include', // Important for sending cookies
     };
 
     axios.post(url, formData, config)
@@ -57,7 +58,7 @@ function Management() {
             <div className="display-6 text-primary mb-3">
               <FaCloudUploadAlt size={50} />
             </div>
-            <h2 className="fw-bold mb-2">Crediantals File Upload</h2>
+            <h2 className="fw-bold mb-2">Market Structure File Upload</h2>
             <p className="text-muted">Upload your management documents here</p>
           </div>
 
@@ -163,4 +164,4 @@ function Management() {
   );
 }
 
-export default Management;
+export default MarketStructure;
