@@ -5,7 +5,7 @@ import Crediantals from "./Training/Crediantals";
 import Management from "./Training/Management";
 import MarketStructure from "./Training/MarketStructure";
 import CustomNavbar from "./CustomNavbar";
-import { Login } from "./Login";
+import  Login  from "./Login";
 import { Register } from "./Register";
 import PrivateRoute from "./PrivateRoute";
 import Home from "./Training/Home";
