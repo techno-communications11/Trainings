@@ -1,20 +1,15 @@
 const db = require('../db');
 
 async function getAllTrackingData(req, res) {
-  const query = 'SELECT DISTINCT * FROM TrackingData';
+  const userId = req.user ? req.user.id : 1; // Replace with your auth logic
+  const query = 'SELECT DISTINCT * FROM TrackingData WHERE user_id = ?';
 
   try {
-    // Using db.promise() to enable async/await support
-    const [rows] = await db.promise().execute(query);
-
-    console.log('Fetched all data from TrackingData:', rows);
-
-    // Send the fetched data as a JSON response
-    res.status(200).json(rows);  // This sends the data as a response
+    const [rows] = await db.promise().execute(query, [userId]);
+    console.log(`Fetched data for user_id ${userId} from TrackingData:`, rows);
+    res.status(200).json(rows);
   } catch (error) {
     console.error('Error fetching data from TrackingData:', error.message);
-    
-    // Send an error response in case of failure
     res.status(500).json({ error: 'Failed to fetch tracking data' });
   }
 }

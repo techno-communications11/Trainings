@@ -1,16 +1,18 @@
 import React, { useState, useRef } from "react";
 import { TruckIcon } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const ShipmentTracking = () => {
+  const navigate = useNavigate();
   const [statusMessage, setStatusMessage] = useState(null);
   const [fedexFile, setFedexFile] = useState(null);
   const [upsFile, setUpsFile] = useState(null);
-  const [fedexDownloadLink, setFedexDownloadLink] = useState("");
-  const [upsDownloadLink, setUpsDownloadLink] = useState("");
   const [isDraggingFedex, setIsDraggingFedex] = useState(false);
   const [isDraggingUPS, setIsDraggingUPS] = useState(false);
   const [isProcessingFedex, setIsProcessingFedex] = useState(false);
   const [isProcessingUPS, setIsProcessingUPS] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processingMessage, setProcessingMessage] = useState("");
 
   const fedexInputRef = useRef(null);
   const upsInputRef = useRef(null);
@@ -51,7 +53,10 @@ const ShipmentTracking = () => {
     e.preventDefault();
     if (!fedexFile) return showStatus("Please select a FedEx file", "warning");
 
+    setIsProcessing(true);
     setIsProcessingFedex(true);
+    setProcessingMessage("Processing FedEx tracking data...");
+
     const formData = new FormData();
     formData.append("file", fedexFile);
 
@@ -71,24 +76,15 @@ const ShipmentTracking = () => {
         throw new Error(errorData.message || "Failed to process FedEx file");
       }
 
-      const blob = await response.blob();
-      const downloadUrl = window.URL.createObjectURL(blob);
-      setFedexDownloadLink(
-        <a
-          href={downloadUrl}
-          download="fedex_tracking_details.xlsx"
-          className="btn btn-success"
-        >
-          <i className="bi bi-download me-2"></i>
-          Download FedEx Results
-        </a>
-      );
-      showStatus("FedEx processing complete!", "success");
+      showStatus("FedEx processing complete! Redirecting...", "success");
+      navigate("/trainingdata");
     } catch (error) {
       console.error("FedEx upload error:", error);
       showStatus(error.message, "danger");
     } finally {
+      setIsProcessing(false);
       setIsProcessingFedex(false);
+      setProcessingMessage("");
     }
   };
 
@@ -96,7 +92,10 @@ const ShipmentTracking = () => {
     e.preventDefault();
     if (!upsFile) return showStatus("Please select a UPS file", "warning");
 
+    setIsProcessing(true);
     setIsProcessingUPS(true);
+    setProcessingMessage("Processing UPS tracking data...");
+
     const formData = new FormData();
     formData.append("file", upsFile);
 
@@ -116,24 +115,15 @@ const ShipmentTracking = () => {
         throw new Error(errorData.message || "Failed to process UPS file");
       }
 
-      const blob = await response.blob();
-      const downloadUrl = window.URL.createObjectURL(blob);
-      setUpsDownloadLink(
-        <a
-          href={downloadUrl}
-          download="ups_tracking_details.xlsx"
-          className="btn btn-success"
-        >
-          <i className="bi bi-download me-2"></i>
-          Download UPS Results
-        </a>
-      );
-      showStatus("UPS processing complete!", "success");
+      showStatus("UPS processing complete! Redirecting...", "success");
+      navigate("/trainingdata");
     } catch (error) {
       console.error("UPS upload error:", error);
       showStatus(error.message, "danger");
     } finally {
+      setIsProcessing(false);
       setIsProcessingUPS(false);
+      setProcessingMessage("");
     }
   };
 
@@ -152,7 +142,6 @@ const ShipmentTracking = () => {
     logo,
     isDragging,
     file,
-    downloadLink,
     inputRef,
     onUpload,
     isProcessing,
@@ -236,15 +225,42 @@ const ShipmentTracking = () => {
               )}
             </button>
           </form>
-
-          <div className="text-center mt-2">{downloadLink}</div>
         </div>
       </div>
     </div>
   );
 
   return (
-    <div className="container py-3">
+    <div className="container py-3 position-relative">
+      {/* Full-page overlay loader */}
+      {isProcessing && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(255, 255, 255, 0.8)",
+            zIndex: 1050,
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <div
+            className="spinner-border text-primary"
+            style={{ width: "3rem", height: "3rem" }}
+            role="status"
+          >
+            <span className="visually-hidden">Loading...</span>
+          </div>
+          <h4 className="mt-3 text-primary">{processingMessage}</h4>
+          <p className="text-muted">Please wait while we process your file...</p>
+        </div>
+      )}
+
       {statusMessage && (
         <div
           className={`alert alert-${statusMessage.type} alert-dismissible fade show mb-4`}
@@ -271,13 +287,12 @@ const ShipmentTracking = () => {
           <span className="border-bottom border-3 border-warning pb-2">
             Track Your Shipments
           </span>
-        </h3>{" "}
+        </h3>
         <ShipmentCard
           carrier="FedEx"
           logo="/fedex.webp"
           isDragging={isDraggingFedex}
           file={fedexFile}
-          downloadLink={fedexDownloadLink}
           inputRef={fedexInputRef}
           onUpload={handleFedExUpload}
           isProcessing={isProcessingFedex}
@@ -287,7 +302,6 @@ const ShipmentTracking = () => {
           logo="/ups.jpg"
           isDragging={isDraggingUPS}
           file={upsFile}
-          downloadLink={upsDownloadLink}
           inputRef={upsInputRef}
           onUpload={handleUPSUpload}
           isProcessing={isProcessingUPS}

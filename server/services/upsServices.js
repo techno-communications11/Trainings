@@ -1,5 +1,5 @@
 const axios = require("axios");
-const { truncateTrackingData, insertTrackingData } = require("./databaseService");
+const { deleteUserTrackingData, insertTrackingData } = require("./databaseService");
 require("dotenv").config();
 
 function getAccessToken(callback) {
@@ -26,7 +26,7 @@ function getAccessToken(callback) {
     });
 }
 
-function getUpsTrackingDetails(trackingNumbers, callback) {
+function getUpsTrackingDetails(trackingNumbers, userId, callback) {
     if (!Array.isArray(trackingNumbers) || trackingNumbers.length === 0) {
         return callback ? callback(new Error("Please provide an array of tracking numbers")) : null;
     }
@@ -48,7 +48,7 @@ function getUpsTrackingDetails(trackingNumbers, callback) {
     getAccessToken((error, accessToken) => {
         if (error) return callback ? callback(error) : null;
 
-        truncateTrackingData((truncateError) => {
+        deleteUserTrackingData(userId, (truncateError) => {
             if (truncateError) return callback ? callback(truncateError) : null;
 
             trackingNumbers.forEach(trackingNumber => {
@@ -112,7 +112,8 @@ function getUpsTrackingDetails(trackingNumbers, callback) {
                         deliveryDate: formattedDeliveryDate,
                         upsOriginalTime: relevantActivity.date && relevantActivity.time 
                             ? `${relevantActivity.date} ${relevantActivity.time}` 
-                            : null
+                            : null,
+                        user_id: userId // Add user_id to the tracking data
                     };
 
                     insertTrackingData(trackingData, (insertError) => {
@@ -134,7 +135,8 @@ function getUpsTrackingDetails(trackingNumbers, callback) {
                         deliveryAttempts: 0,
                         receivedByName: null,
                         deliveryDate: null,
-                        upsOriginalTime: null
+                        upsOriginalTime: null,
+                        user_id: userId // Add user_id to the error data as well
                     };
                     insertTrackingData(errorData, (insertError) => {
                         if (insertError) {

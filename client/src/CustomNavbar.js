@@ -58,7 +58,7 @@ const CustomNavbar = () => {
                       alt="UPS"
                       className="me-2"
                     />
-                    UPS Live Track
+                    Track One
                   </Button>
                 </Nav.Item>
 
@@ -76,7 +76,7 @@ const CustomNavbar = () => {
                       alt="FedEx"
                       className="me-2"
                     />
-                    FedEx Live Track
+                    Track One
                   </Button>
                 </Nav.Item>
 
