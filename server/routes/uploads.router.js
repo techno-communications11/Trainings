@@ -30,23 +30,23 @@ router.post('/verify-otp', verifyOtp);
 router.post('/logout', authenticateToken, logout);
 
 // File upload routes
-router.post('/upload-fedex', upload.single('file'), processUpload);
-router.post('/upload-ups', upload.single('file'), upsprocessUpload);
+router.post('/upload-fedex', authenticateToken, upload.single('file'), processUpload);
+router.post('/upload-ups', authenticateToken, upload.single('file'), upsprocessUpload);
 
 // Tracking data routes
-router.get('/getalltrackingdata', getAllTrackingData);
-router.post('/gettrackindividual', gettrackindividual);
-router.post('/getupsindividual', getupsindividual);
+router.get('/getalltrackingdata', authenticateToken, getAllTrackingData);
+router.post('/gettrackindividual', authenticateToken, gettrackindividual);
+router.post('/getupsindividual',authenticateToken, getupsindividual);
 router.get('/users/me', authenticateToken, getCurrentUser);
 
 // Modified tracking details route with error handling
 router.get('/tracking-details', authenticateToken, getTrackingDetails);
 
 // Other file upload routes
-router.post('/upload', upload.fields([{ name: 'file1' }, { name: 'file2' }]), handleFileUpload);
-router.post('/managementFile', upload.single('file'), handleManagementFileUpload);
-router.post('/crediantalsFile', upload.single('file'), handleCrediantalsFileUpload);
-router.post('/marketstructureFile', upload.single('file'), (req, res, next) => {
+router.post('/upload', authenticateToken, upload.fields([{ name: 'file1' }, { name: 'file2' }]), handleFileUpload);
+router.post('/managementFile',authenticateToken, upload.single('file'), handleManagementFileUpload);
+router.post('/crediantalsFile', authenticateToken, upload.single('file'), handleCrediantalsFileUpload);
+router.post('/marketstructureFile', authenticateToken, upload.single('file'), (req, res, next) => {
   console.log('Uploaded file:', req.file);
   next();
 }, handleMarketStructureFileUpload);

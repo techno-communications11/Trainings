@@ -8,7 +8,7 @@ const authenticateToken = async (req, res, next) => {
   }
 
   const token = req.cookies.token;
-  console.log("Token:", token); // Debug log
+  // console.log("Token:", token); // Debug log
 
   if (!token) {
     return res.status(401).json({ error: "No token provided." });

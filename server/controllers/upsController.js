@@ -7,7 +7,7 @@ exports.upsprocessUpload = async (req, res) => {
   const trackingNumbers = [];
 
   // Get user_id from auth (replace with your actual auth logic)
-  const userId = req.user ? req.user.id : 1; // Fallback to 1 if no auth
+  const userId = req.user.id; // Fallback to 1 if no auth
 
   fs.createReadStream(filePath)
     .pipe(csv())
