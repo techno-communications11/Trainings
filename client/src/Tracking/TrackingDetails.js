@@ -38,14 +38,15 @@ const TrackingDataTable = () => {
   const handleDownload = async () => {
     try {
       // Convert data to CSV string
-      const headers = ['Tracking Number', 'Status', 'Description', 'Delivery Date', 'Attempts', 'Received By'];
+      const headers = ['Tracking Number', 'Status', 'Description', 'Date','Time', 'Attempts', 'Received By'];
       const csvData = [
         headers.join(','),
         ...trackingData.map(item => [
           item.trackingNumber,
           item.statusByLocale,
           `"${item.description}"`,  // Handle commas in description
-          item.deliveryDate,
+          formatDateTime(item.deliveryDate).date,
+          formatDateTime(item.deliveryDate).time,
           item.deliveryAttempts,
           item.receivedByName || ''
         ].join(','))
@@ -76,7 +77,7 @@ const TrackingDataTable = () => {
   };
 
   const formatDateTime = (dateTime) => {
-    if (!dateTime) return { date: '—', time: '—' };
+    if (!dateTime) return { date: '/', time: '/' };
   
     const [date, time] = dateTime.split('T');
     
@@ -96,7 +97,7 @@ const TrackingDataTable = () => {
   
   
   const filteredData = trackingData.filter(item => {
-    console.log('Tracking Number:', item.trackingNumber, 'Type:', typeof item.trackingNumber);  // Debug log
+    // console.log('Tracking Number:', item.trackingNumber, 'Type:', typeof item.trackingNumber);  // Debug log
     return (
       (String(item.trackingNumber)?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
       (String(item.statusByLocale)?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
