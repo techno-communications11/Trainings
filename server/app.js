@@ -24,8 +24,8 @@ app.use(helmet());
 app.use(cookieParser());
 app.use(cors(corsOptions)); // Apply CORS globally
 app.use(morgan('dev'));
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json()); // Removed the limit
+app.use(express.urlencoded({ extended: true })); // Removed the limit
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 const uploadsRouter = require('./routes/uploads.router.js');

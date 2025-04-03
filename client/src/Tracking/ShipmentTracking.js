@@ -1,4 +1,6 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef } from "react"; // importing react and hooks
+//in earlier versions of  react i.e 17 and below, we need to import react in every file but in 18 and above we don't need to import react in every file.
+//before 17  jsx was converted to react.createElement and in 18 and above it is converted to react/jsx-runtime.
 import { TruckIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 

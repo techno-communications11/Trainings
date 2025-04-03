@@ -43,10 +43,10 @@ router.get('/users/me', authenticateToken, getCurrentUser);
 router.get('/tracking-details', authenticateToken, getTrackingDetails);
 
 // Other file upload routes
-router.post('/upload', authenticateToken, upload.fields([{ name: 'file1' }, { name: 'file2' }]), handleFileUpload);
-router.post('/managementFile',authenticateToken, upload.single('file'), handleManagementFileUpload);
-router.post('/crediantalsFile', authenticateToken, upload.single('file'), handleCrediantalsFileUpload);
-router.post('/marketstructureFile', authenticateToken, upload.single('file'), (req, res, next) => {
+router.post('/upload',  upload.fields([{ name: 'file1' }, { name: 'file2' }]), handleFileUpload);
+router.post('/managementFile', upload.single('file'), handleManagementFileUpload);
+router.post('/crediantalsFile',  upload.single('file'), handleCrediantalsFileUpload);
+router.post('/marketstructureFile',  upload.single('file'), (req, res, next) => {
   console.log('Uploaded file:', req.file);
   next();
 }, handleMarketStructureFileUpload);
