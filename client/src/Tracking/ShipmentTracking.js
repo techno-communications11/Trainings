@@ -64,78 +64,118 @@ const ShipmentTracking = () => {
   };
 
   // Inside processUpload function
-const processUpload = async (carrier, file, setIsProcessingCarrier) => {
-  if (!file) {
-    showStatus(`Please select a ${carrier} file`, "warning");
-    return;
-  }
-
-  setIsProcessingCarrier(true);
-  setProgress({ carrier, current: 0, total: 0 });
-  setErrorMessage(null);
-
-  const formData = new FormData();
-  formData.append("file", file);
-
-  try {
-    showStatus(`Processing ${carrier} file...`, "info");
-    const response = await fetch(
-      `${process.env.REACT_APP_BASE_URL}/upload-${carrier.toLowerCase()}`,
-      {
-        method: "POST",
-        body: formData,
-        credentials: "include",
-      }
-    );
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `Failed to process ${carrier} file`);
+  const processUpload = async (carrier, file, setIsProcessingCarrier) => {
+    if (!file) {
+      showStatus(`Please select a ${carrier} file`, "warning");
+      return;
     }
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let result = "";
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      result += decoder.decode(value, { stream: true });
-      // Parse the entire array up to the last complete object
-      const lastBracket = result.lastIndexOf('}');
-      if (lastBracket === -1) continue;
-
-      const jsonString = result.substring(0, lastBracket + 1) + ']';
-      try {
-        const progressArray = JSON.parse(jsonString);
-        const latestProgress = progressArray[progressArray.length - 1];
+  
+    setIsProcessingCarrier(true);
+    setProgress({ carrier, current: 0, total: 0 });
+    setErrorMessage(null);
+  
+    const formData = new FormData();
+    formData.append("file", file);
+  
+    try {
+      showStatus(`Processing ${carrier} file...`, "info");
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/upload-${carrier.toLowerCase()}`,
+        {
+          method: "POST",
+          body: formData,
+          credentials: "include",
+        }
+      );
+  
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Failed to process ${carrier} file`);
+      }
+  
+      // Handle streaming response
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let lastProgress = {};
+  
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+  
+        buffer += decoder.decode(value, { stream: true });
+        
+        // Process each complete line (JSON object)
+        const lines = buffer.split('\n');
+        buffer = lines.pop(); // Keep the last incomplete line in buffer
+  
+        for (const line of lines) {
+          if (line.trim() === '') continue;
+          
+          try {
+            const progressData = JSON.parse(line);
+            lastProgress = progressData;
+  
+            // Update progress for both FedEx and UPS
+            setProgress({
+              carrier,
+              current: progressData.current || 0,
+              total: progressData.total || 0,
+              trackingDetails: progressData.trackingDetails || []
+            });
+  
+            if (progressData.error) {
+              setErrorMessage(`${progressData.error} (at ${progressData.current}/${progressData.total})`);
+            }
+  
+            if (progressData.status === 'complete') {
+              showStatus(`${carrier} processing complete!`, "success");
+              // Store the tracking data in state or context if needed
+              setTimeout(() => navigate("/trainingdata"), 1000);
+            }
+          } catch (parseError) {
+            console.error('Error parsing progress update:', parseError);
+            setErrorMessage(`Error parsing server response: ${parseError.message}`);
+          }
+        }
+      }
+  
+      // Process any remaining data in buffer
+      if (buffer.trim()) {
+        try {
+          const progressData = JSON.parse(buffer);
+          setProgress({
+            carrier,
+            current: progressData.current || 0,
+            total: progressData.total || 0,
+            trackingDetails: progressData.trackingDetails || []
+          });
+          if (progressData.status === 'complete') {
+            showStatus(`${carrier} processing complete!`, "success");
+            setTimeout(() => navigate("/trainingdata"), 1000);
+          }
+        } catch (parseError) {
+          console.error('Error parsing final progress update:', parseError);
+        }
+      }
+  
+      // Ensure we show the final count even if the stream ended abruptly
+      if (lastProgress.current && lastProgress.total) {
         setProgress({
           carrier,
-          current: latestProgress.current,
-          total: latestProgress.total,
+          current: lastProgress.current,
+          total: lastProgress.total,
+          trackingDetails: lastProgress.trackingDetails || []
         });
-        if (latestProgress.error) {
-          setErrorMessage(`${latestProgress.error} (at ${latestProgress.current}/${latestProgress.total})`);
-        }
-        if (latestProgress.status === "complete") {
-          showStatus(`${carrier} processing complete! Redirecting...`, "success");
-          navigate("/trainingdata");
-        }
-      } catch (parseError) {
-        console.error('JSON parse error:', parseError.message);
-        // Wait for more data if JSON is incomplete
       }
+    } catch (error) {
+      console.error(`${carrier} upload error:`, error);
+      setErrorMessage(error.message);
+      showStatus(`Error processing ${carrier} file: ${error.message}`, "danger");
+    } finally {
+      setIsProcessingCarrier(false);
     }
-  } catch (error) {
-    console.error(`${carrier} upload error:`, error);
-    setErrorMessage(error.message);
-    showStatus(`Error processing ${carrier} file: ${error.message}`, "danger");
-  } finally {
-    setIsProcessingCarrier(false);
-    setProgress({ carrier: "", current: 0, total: 0 });
-  }
-};
+  };
 
   const handleFedExUpload = (e) => {
     e.preventDefault();
