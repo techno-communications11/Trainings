@@ -1,6 +1,4 @@
-import React, { useState, useRef } from "react"; // importing react and hooks
-//in earlier versions of  react i.e 17 and below, we need to import react in every file but in 18 and above we don't need to import react in every file.
-//before 17  jsx was converted to react.createElement and in 18 and above it is converted to react/jsx-runtime.
+import { useState, useRef } from "react";
 import { TruckIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -13,8 +11,12 @@ const ShipmentTracking = () => {
   const [isDraggingUPS, setIsDraggingUPS] = useState(false);
   const [isProcessingFedex, setIsProcessingFedex] = useState(false);
   const [isProcessingUPS, setIsProcessingUPS] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [processingMessage, setProcessingMessage] = useState("");
+  const [progress, setProgress] = useState({
+    carrier: "",
+    current: 0,
+    total: 0,
+  }); // Track progress
+  const [errorMessage, setErrorMessage] = useState(null); // Detailed error message
 
   const fedexInputRef = useRef(null);
   const upsInputRef = useRef(null);
@@ -51,84 +53,6 @@ const ShipmentTracking = () => {
     }
   };
 
-  const handleFedExUpload = async (e) => {
-    e.preventDefault();
-    if (!fedexFile) return showStatus("Please select a FedEx file", "warning");
-
-    setIsProcessing(true);
-    setIsProcessingFedex(true);
-    setProcessingMessage("Processing FedEx tracking data...");
-
-    const formData = new FormData();
-    formData.append("file", fedexFile);
-
-    try {
-      showStatus("Processing FedEx file...", "info");
-      const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/upload-fedex`,
-        {
-          method: "POST",
-          body: formData,
-          credentials: "include",
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || "Failed to process FedEx file");
-      }
-
-      showStatus("FedEx processing complete! Redirecting...", "success");
-      navigate("/trainingdata");
-    } catch (error) {
-      console.error("FedEx upload error:", error);
-      showStatus(error.message, "danger");
-    } finally {
-      setIsProcessing(false);
-      setIsProcessingFedex(false);
-      setProcessingMessage("");
-    }
-  };
-
-  const handleUPSUpload = async (e) => {
-    e.preventDefault();
-    if (!upsFile) return showStatus("Please select a UPS file", "warning");
-
-    setIsProcessing(true);
-    setIsProcessingUPS(true);
-    setProcessingMessage("Processing UPS tracking data...");
-
-    const formData = new FormData();
-    formData.append("file", upsFile);
-
-    try {
-      showStatus("Processing UPS file...", "info");
-      const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/upload-ups`,
-        {
-          method: "POST",
-          body: formData,
-          credentials: "include",
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || "Failed to process UPS file");
-      }
-
-      showStatus("UPS processing complete! Redirecting...", "success");
-      navigate("/trainingdata");
-    } catch (error) {
-      console.error("UPS upload error:", error);
-      showStatus(error.message, "danger");
-    } finally {
-      setIsProcessing(false);
-      setIsProcessingUPS(false);
-      setProcessingMessage("");
-    }
-  };
-
   const handleFileChange = (e, carrier) => {
     const file = e.target.files[0];
     if (file && file.name.endsWith(".csv")) {
@@ -137,6 +61,90 @@ const ShipmentTracking = () => {
     } else {
       showStatus("Please upload a CSV file", "danger");
     }
+  };
+
+  // Inside processUpload function
+const processUpload = async (carrier, file, setIsProcessingCarrier) => {
+  if (!file) {
+    showStatus(`Please select a ${carrier} file`, "warning");
+    return;
+  }
+
+  setIsProcessingCarrier(true);
+  setProgress({ carrier, current: 0, total: 0 });
+  setErrorMessage(null);
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  try {
+    showStatus(`Processing ${carrier} file...`, "info");
+    const response = await fetch(
+      `${process.env.REACT_APP_BASE_URL}/upload-${carrier.toLowerCase()}`,
+      {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Failed to process ${carrier} file`);
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let result = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      result += decoder.decode(value, { stream: true });
+      // Parse the entire array up to the last complete object
+      const lastBracket = result.lastIndexOf('}');
+      if (lastBracket === -1) continue;
+
+      const jsonString = result.substring(0, lastBracket + 1) + ']';
+      try {
+        const progressArray = JSON.parse(jsonString);
+        const latestProgress = progressArray[progressArray.length - 1];
+        setProgress({
+          carrier,
+          current: latestProgress.current,
+          total: latestProgress.total,
+        });
+        if (latestProgress.error) {
+          setErrorMessage(`${latestProgress.error} (at ${latestProgress.current}/${latestProgress.total})`);
+        }
+        if (latestProgress.status === "complete") {
+          showStatus(`${carrier} processing complete! Redirecting...`, "success");
+          navigate("/trainingdata");
+        }
+      } catch (parseError) {
+        console.error('JSON parse error:', parseError.message);
+        // Wait for more data if JSON is incomplete
+      }
+    }
+  } catch (error) {
+    console.error(`${carrier} upload error:`, error);
+    setErrorMessage(error.message);
+    showStatus(`Error processing ${carrier} file: ${error.message}`, "danger");
+  } finally {
+    setIsProcessingCarrier(false);
+    setProgress({ carrier: "", current: 0, total: 0 });
+  }
+};
+
+  const handleFedExUpload = (e) => {
+    e.preventDefault();
+    processUpload("FedEx", fedexFile, setIsProcessingFedex);
+  };
+
+  const handleUPSUpload = (e) => {
+    e.preventDefault();
+    processUpload("UPS", upsFile, setIsProcessingUPS);
   };
 
   const ShipmentCard = ({
@@ -151,11 +159,11 @@ const ShipmentTracking = () => {
     <div className="col-md-6">
       <div className="card h-100 shadow border-0">
         <div className="card-body p-3">
-          <div className="text-center ">
+          <div className="text-center">
             <img
               src={logo}
               alt={`${carrier} Logo`}
-              className="img-fluid "
+              className="img-fluid"
               style={{ maxHeight: "60px" }}
             />
             <h4 className="card-title">{carrier} Tracking</h4>
@@ -234,8 +242,8 @@ const ShipmentTracking = () => {
 
   return (
     <div className="container py-3 position-relative">
-      {/* Full-page overlay loader */}
-      {isProcessing && (
+      {/* Full-page overlay loader with progress */}
+      {(isProcessingFedex || isProcessingUPS) && (
         <div
           style={{
             position: "fixed",
@@ -258,8 +266,22 @@ const ShipmentTracking = () => {
           >
             <span className="visually-hidden">Loading...</span>
           </div>
-          <h4 className="mt-3 text-primary">{processingMessage}</h4>
-          <p className="text-muted">Please wait while we process your file...</p>
+          <h4 className="mt-3 text-primary">
+            Processing {progress.carrier} tracking data...
+          </h4>
+          {progress.total > 0 && (
+            <p className="text-muted">
+              Processed {progress.current} of {progress.total} tracking numbers
+            </p>
+          )}
+          {errorMessage && (
+            <div
+              className="alert alert-danger mt-3"
+              style={{ maxWidth: "500px" }}
+            >
+              <strong>Error:</strong> {errorMessage}
+            </div>
+          )}
         </div>
       )}
 
