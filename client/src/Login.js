@@ -3,24 +3,27 @@ import { useNavigate } from 'react-router-dom';
 import './Login.css';
 import { FaEye, FaEyeSlash, FaEnvelope, FaLock } from 'react-icons/fa';
 import { motion } from 'framer-motion';
-import { useMyContext } from './MyContext'; // Make sure this path is correct
+import { useMyContext } from './MyContext';
 
 const Login = () => {
   const [credentials, setCredentials] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [showAlert, setShowAlert] = useState(false);
   const navigate = useNavigate();
-  const { updateAuth } = useMyContext();
+  const { updateAuth, authState } = useMyContext();
 
-  // Clear error when user starts typing
+  useEffect(() => {
+    if (authState.isAuthenticated && !authState.loading) {
+      navigate(authState.role === 'Training' ? "/home" : "/trackhome", { replace: true });
+    }
+  }, [authState.isAuthenticated, authState.loading, authState.role, navigate]);
+
   useEffect(() => {
     if (error && (credentials.email || credentials.password)) {
       setError("");
-      setShowAlert(false);
     }
-  }, [credentials.email, credentials.password, error]);
+  }, [credentials.email, credentials.password]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -32,76 +35,52 @@ const Login = () => {
       setError("Both email and password are required");
       return false;
     }
-
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(credentials.email)) {
       setError("Please enter a valid email address");
       return false;
     }
-
     if (credentials.password.length < 6) {
       setError("Password must be at least 6 characters");
       return false;
     }
-
     return true;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
-    setShowAlert(false);
-  
-    if (!validateForm()) {
-      setShowAlert(true);
-      return;
-    }
-  
+    if (!validateForm()) return;
+
     setIsLoading(true);
-  
     try {
-      const loginResponse = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/login`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify(credentials),
-        }
-      );
-  
+      const loginResponse = await fetch(`${process.env.REACT_APP_BASE_URL}/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(credentials),
+      });
+
+      const loginData = await loginResponse.json();
       if (!loginResponse.ok) {
-        const errorData = await loginResponse.json().catch(() => ({}));
-        throw new Error(errorData.message || "Login failed");
+        throw new Error(loginData.error || "Login failed");
       }
-  
-      const userResponse = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/users/me`,
-        {
-          method: "GET",
-          credentials: "include",
-          headers: { Accept: "application/json" },
-        }
-      );
-  
-      if (!userResponse.ok) {
-        throw new Error("Failed to fetch user data");
-      }
-  
+
+      const userResponse = await fetch(`${process.env.REACT_APP_BASE_URL}/users/me`, {
+        method: "GET",
+        credentials: "include",
+        headers: { Accept: "application/json" },
+      });
+
       const userData = await userResponse.json();
-      const { role, id } = userData;
-  
-      updateAuth(true, role, id);
-  
-      navigate(
-        role === 'Training' ? "/home" : "/trackhome",
-        { replace: true }
-      );
+      if (!userResponse.ok) {
+        throw new Error(userData.error || "Failed to fetch user data");
+      }
+
+      updateAuth(true, userData.role, userData.id);
     } catch (err) {
-      setError(err.message || "An error occurred during login");
-      setShowAlert(true);
+      setError(err.message);
       console.error("Login error:", err);
     } finally {
       setIsLoading(false);
@@ -110,14 +89,14 @@ const Login = () => {
 
   return (
     <motion.div
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    transition={{ duration: 0.6 }}
-    className="container-fluid min-vh-100 d-flex flex-column justify-content-center position-relative"
-    style={{
-      background: "linear-gradient(135deg, #ffffff 0%, #f3e7e9 100%)",
-      overflow: "hidden",
-    }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.6 }}
+      className="container-fluid min-vh-100 d-flex flex-column justify-content-center position-relative"
+      style={{
+        background: "linear-gradient(135deg, #ffffff 0%, #f3e7e9 100%)",
+        overflow: "hidden",
+      }}
     >
       <motion.h1
         initial={{ y: -50, opacity: 0 }}
@@ -125,7 +104,7 @@ const Login = () => {
         transition={{ duration: 0.5 }}
         className="text-center mb-5 login-heading"
       >
-        Welcome Back..
+        Welcome Back
       </motion.h1>
 
       <div className="row w-100 m-0">
@@ -139,7 +118,6 @@ const Login = () => {
             src="logoT.webp"
             alt="Company Logo"
             className="img-fluid w-75"
-
             style={{
               filter: 'drop-shadow(0 10px 15px rgba(0, 0, 0, 0.1))',
               transform: 'translateY(-10px)'
@@ -148,12 +126,12 @@ const Login = () => {
         </motion.div>
 
         <motion.div
-           initial={{ x: 50, opacity: 0 }}
-           animate={{ x: 0, opacity: 1 }}
-           transition={{ duration: 0.5, delay: 0.2 }}
-           className="col-md-6 d-flex justify-content-center align-items-center p-2 p-lg-5"
+          initial={{ x: 50, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="col-md-6 d-flex justify-content-center align-items-center p-2 p-lg-5"
         >
-          <div  className="card shadow-lg col-12 col-md-8 col-lg-10 border-0 rounded-4"
+          <div className="card shadow-lg col-12 col-md-8 col-lg-10 border-0 rounded-4"
             style={{
               background: "rgba(255, 255, 255, 0.95)",
               backdropFilter: "blur(10px)",
@@ -161,7 +139,7 @@ const Login = () => {
             }}
           >
             <div className="card-body">
-              {showAlert && error && (
+              {error && (
                 <div className="alert alert-danger" role="alert">
                   {error}
                 </div>

@@ -7,23 +7,25 @@ import { useMyContext } from "./MyContext";
 
 const CustomNavbar = () => {
   const { authState, logout } = useMyContext();
-  // console.log("Auth State:", authState);
   const [isOpen, setIsOpen] = useState(false);
 
-  const handleNavLinkClick = () => {
-    setIsOpen(false);
-  };
-
-  // Show nothing while loading or if not authenticated
   if (authState.loading || !authState.isAuthenticated) {
     return null;
   }
 
-  const homeRoute =
-    {
-      Training: "/home",
-      Tracking: "/trackhome",
-    }[authState.role] || "/";
+  const homeRoute = {
+    Training: "/home",
+    Tracking: "/trackhome",
+  }[authState.role] || "/";
+
+  const handleLogout = async () => {
+    await logout();
+    setIsOpen(false);
+  };
+
+  const handleNavLinkClick = () => {
+    setIsOpen(false);
+  };
 
   return (
     <Navbar expand="lg" bg="light" className="shadow" expanded={isOpen}>
@@ -145,26 +147,22 @@ const CustomNavbar = () => {
                     Credentials
                   </Nav.Link>
                 </Nav.Item>
+
+                <Nav.Item>
+                  <Nav.Link as={Link} to="/register" onClick={handleNavLinkClick}>
+                    Register
+                  </Nav.Link>
+                </Nav.Item>
               </>
             )}
 
-            {authState.role === "Training" && (
-              <Nav.Item>
-                <Nav.Link as={Link} to="/register" onClick={handleNavLinkClick}>
-                  Register
-                </Nav.Link>
-              </Nav.Item>
-            )}
-
-            
             <Button
               variant="outline-danger"
               className="jira-logout-btn ms-2"
-              onClick={logout}
+              onClick={handleLogout}
             >
-              <RiLogoutBoxRLine className="me-1" /> Logout
+              <RiLogoutBoxRLine class курс="me-1" /> Logout
             </Button>
-           
           </Nav>
         </Navbar.Collapse>
       </Container>
