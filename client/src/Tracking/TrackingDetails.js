@@ -14,15 +14,10 @@ const TrackingDataTable = () => {
       try {
         const response = await fetch(`${process.env.REACT_APP_BASE_URL}/getalltrackingdata`, {
           method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
-          credentials: 'include' // Important for sending cookies
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          credentials: 'include',
         });
-        if (!response.ok) {
-          throw new Error('Failed to fetch tracking data');
-        }
+        if (!response.ok) throw new Error('Failed to fetch tracking data');
         const data = await response.json();
         setTrackingData(data);
       } catch (err) {
@@ -31,81 +26,77 @@ const TrackingDataTable = () => {
         setLoading(false);
       }
     };
-
     fetchData();
   }, []);
 
   const handleDownload = async () => {
-    try {
-      // Convert data to CSV string
-      const headers = ['Tracking Number', 'Status', 'Description', 'Date','Time', 'Attempts', 'Received By'];
-      const csvData = [
-        headers.join(','),
-        ...trackingData.map(item => [
+    const headers = ['SI.NO', 'Tracking Number', 'Status', 'Description', 'Date', 'Time', 'Attempts', 'Received By', 'Service Type'];
+    const csvData = [
+      headers.join(','),
+      ...trackingData.map((item, index) => {
+        const relevantDate = item.statusByLocale.toLowerCase().includes('delivered')
+          ? item.actualDeliveryDate
+          : item.statusByLocale.toLowerCase().includes('out for delivery')
+          ? item.outForDeliveryDate
+          : item.estimatedDeliveryDate;
+        const { date, time } = formatDateTime(relevantDate);
+        return [
+          index + 1,
           item.trackingNumber,
           item.statusByLocale,
-          `"${item.description}"`,  // Handle commas in description
-          formatDateTime(item.deliveryDate).date,
-          formatDateTime(item.deliveryDate).time,
-          item.deliveryAttempts,
-          item.receivedByName || ''
-        ].join(','))
-      ].join('\n');
+          `"${item.description}"`,
+          date,
+          time,
+          item.deliveryAttempts || '0',
+          item.receivedByName || '',
+          item.serviceType || '',
+        ].join(',');
+      }),
+    ].join('\n');
 
-      // Create blob and download
-      const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
-      const url = URL.createObjectURL(blob);
-      link.setAttribute('href', url);
-      link.setAttribute('download', 'tracking_data.csv');
-      link.style.visibility = 'hidden';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } catch (error) {
-      console.error('Download failed:', error);
-    }
+    const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'tracking_data.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const getStatusBadgeClass = (status) => {
     const statusLower = status?.toLowerCase() || '';
     if (statusLower.includes('delivered')) return 'bg-success';
-    if (statusLower.includes('in transit')) return 'bg-info';
-    if (statusLower.includes('pending')) return 'bg-warning';
-    if (statusLower.includes('failed')) return 'bg-danger';
+    if (statusLower.includes('out for delivery')) return 'bg-primary';
+    if (statusLower.includes('on the way') || statusLower.includes('in transit')) return 'bg-warning';
+    if (statusLower.includes('error')) return 'bg-danger';
     return 'bg-secondary';
   };
 
   const formatDateTime = (dateTime) => {
     if (!dateTime) return { date: '/', time: '/' };
-  
-    const [date, time] = dateTime.split('T');
-    
-    // Create a new Date object with the given time (UTC)
+
+    // Parse the date string into a Date object
     const dateObj = new Date(dateTime);
-  
-    // Use UTC methods to get the correct time in AM/PM format
-    const options = { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'UTC' };
-    const formattedTime = new Intl.DateTimeFormat('en-US', options).format(dateObj);
-    
-    return {
-      date: date,   // The date portion (e.g., 2025-01-13)
-      time: formattedTime,  // The formatted time with AM/PM (e.g., 12:00 AM)
-    };
+
+    // Check if the date is valid
+    if (isNaN(dateObj.getTime())) return { date: '/', time: '/' };
+
+    // Format date and time for human readability in America/Chicago time zone
+    const optionsDate = { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'America/Chicago' };
+    const optionsTime = { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Chicago' };
+
+    const date = dateObj.toLocaleDateString('en-US', optionsDate); // e.g., "Mar 14, 2025"
+    const time = dateObj.toLocaleTimeString('en-US', optionsTime); // e.g., "11:40 AM"
+
+    return { date, time };
   };
-  
-  
-  
-  const filteredData = trackingData.filter(item => {
-    // console.log('Tracking Number:', item.trackingNumber, 'Type:', typeof item.trackingNumber);  // Debug log
-    return (
-      (String(item.trackingNumber)?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-      (String(item.statusByLocale)?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-      (String(item.description)?.toLowerCase() || '').includes(searchTerm.toLowerCase())
-    );
-  });
-  
-  
+
+  const filteredData = trackingData.filter(item =>
+    (String(item.trackingNumber)?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    (String(item.statusByLocale)?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    (String(item.description)?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+  );
 
   if (loading) {
     return (
@@ -123,12 +114,8 @@ const TrackingDataTable = () => {
   if (error) {
     return (
       <div className="alert alert-danger m-4 shadow-sm" role="alert">
-        <div className="d-flex align-items-center">
-          <div>
-            <h4 className="alert-heading mb-1">Failed to load tracking data</h4>
-            <p className="mb-0">{error}</p>
-          </div>
-        </div>
+        <h4 className="alert-heading mb-1">Failed to load tracking data</h4>
+        <p className="mb-0">{error}</p>
       </div>
     );
   }
@@ -136,7 +123,6 @@ const TrackingDataTable = () => {
   return (
     <div className="container-fluid px-4 py-3">
       <div className="card shadow-lg border-0 rounded-3">
-        {/* Header Section */}
         <div className="card-header bg-white py-3 border-bottom border-2">
           <div className="row align-items-center">
             <div className="col-md-4">
@@ -147,7 +133,7 @@ const TrackingDataTable = () => {
             </div>
             <div className="col-md-4">
               <div className="input-group">
-                <span className="  input-group-text bg-light border-end-0">
+                <span className="input-group-text bg-light border-end-0">
                   <Search className="text-warning fw-bold" size={18} />
                 </span>
                 <input
@@ -160,10 +146,7 @@ const TrackingDataTable = () => {
               </div>
             </div>
             <div className="col-md-4 text-end">
-              <button 
-                onClick={handleDownload} 
-                className="btn btn-outline-success me-2"
-              >
+              <button onClick={handleDownload} className="btn btn-outline-success me-2">
                 <Download className="me-2" size={18} />
                 Export CSV
               </button>
@@ -174,8 +157,6 @@ const TrackingDataTable = () => {
             </div>
           </div>
         </div>
-
-        {/* Table Section */}
         <div className="table-responsive" style={{ maxHeight: '79vh' }}>
           <Table className="table table-hover align-middle mb-0 table-sm">
             <thead className="bg-light text-dark sticky-top">
@@ -188,13 +169,17 @@ const TrackingDataTable = () => {
                 <th className="text-center fw-bold">Time</th>
                 <th className="text-center fw-bold">Attempts</th>
                 <th className="text-center fw-bold">Received By</th>
+                <th className="text-center fw-bold">Service Type</th>
               </tr>
             </thead>
             <tbody>
               {filteredData.map((item, index) => {
-                const { date, time } = formatDateTime(item.deliveryDate);
-                console.log(date, time);  // This should now correctly show the expected time without issues.
-                
+                const relevantDate = item.statusByLocale.toLowerCase().includes('delivered')
+                  ? item.actualDeliveryDate
+                  : item.statusByLocale.toLowerCase().includes('out for delivery')
+                  ? item.outForDeliveryDate
+                  : item.estimatedDeliveryDate;
+                const { date, time } = formatDateTime(relevantDate);
                 return (
                   <tr key={item.trackingNumber}>
                     <td className="text-center">{index + 1}</td>
@@ -204,17 +189,18 @@ const TrackingDataTable = () => {
                         {item.statusByLocale}
                       </span>
                     </td>
-                    <td>
-                      <p className="text-muted mb-0 text-truncate text-center" style={{ maxWidth: '300px' }}>
+                    <td className="text-center">
+                      <p className="text-muted mb-0 text-truncate" style={{ maxWidth: '300px' }}>
                         {item.description}
                       </p>
                     </td>
                     <td className="text-center">{date}</td>
                     <td className="text-center">{time}</td>
                     <td className="text-center">
-                      <span className="badge bg-light text-dark">{item.deliveryAttempts}</span>
+                      <span className="badge bg-light text-dark">{item.deliveryAttempts || '0'}</span>
                     </td>
                     <td className="text-center">{item.receivedByName || '—'}</td>
+                    <td className="text-center">{item.serviceType || '—'}</td>
                   </tr>
                 );
               })}

@@ -1,17 +1,7 @@
 const axios = require('axios');
 
 function formatDateTime(rawDateTime) {
-  if (!rawDateTime) return null;
-  // Parse ISO date with offset (e.g., "2025-03-13T11:59:19-07:00")
-  const dateObj = new Date(rawDateTime);
-  // Extract local time components as per the offset
-  const year = dateObj.getFullYear();
-  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-  const day = String(dateObj.getDate()).padStart(2, '0');
-  const hours = String(dateObj.getHours()).padStart(2, '0');
-  const minutes = String(dateObj.getMinutes()).padStart(2, '0');
-  const seconds = String(dateObj.getSeconds()).padStart(2, '0');
-  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  return rawDateTime; // Return the exact ISO string as received from FedEx API, e.g., "2025-03-18T17:36:24-07:00"
 }
 
 async function gettrackindividual(req, res) {
@@ -36,89 +26,65 @@ async function gettrackindividual(req, res) {
     const trackResponse = await axios.post(
       'https://apis.fedex.com/track/v1/trackingnumbers',
       {
-        trackingInfo: [{ trackingNumberInfo: { trackingNumber } }],
+        trackingInfo: [{ trackingNumberInfo: { trackingNumber }, includeDetailedScans: true }],
         includeDetailedScans: true,
       },
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
+          'x-locale': 'en_US',
         },
       }
     );
-    // console.log(trackResponse.data, 'trackResponse');
 
     const trackResult = trackResponse.data.output.completeTrackResults[0].trackResults[0];
-    // console.log(trackResult, 'trackResult');
+    console.log('Raw Track Result:', trackResult); // Debugging line to verify API response
+    if (!trackResult) throw new Error('No tracking data found');
+
     const latestStatus = trackResult.latestStatusDetail || {};
     const dateAndTimes = trackResult.dateAndTimes || [];
     const scanEvents = trackResult.scanEvents || [];
     const deliveryDetails = trackResult.deliveryDetails || {};
+    const packageDetails = trackResult.packageDetails || {};
+    const serviceDetail = trackResult.serviceDetail || {};
+    const weight = packageDetails.weightAndDimensions?.weight?.[0] || {};
 
-    let relevantDeliveryDate = null;
     const status = latestStatus.statusByLocale?.toLowerCase() || '';
-    if (status.includes('delivered')) {
-      relevantDeliveryDate = dateAndTimes.find((item) => item.type === 'ACTUAL_DELIVERY')?.dateTime || null;
-    } else if (status.includes('out for delivery') || status.includes('on the way')) {
-      relevantDeliveryDate = dateAndTimes.find((item) => item.type === 'ESTIMATED_DELIVERY')?.dateTime || null;
-    }
+    let actualDeliveryDate = null;
+    let estimatedDeliveryDate = null;
+    let outForDeliveryDate = null;
 
-    const trackingEvents = [];
-    const desiredEvents = [
-      { desc: 'Shipment information sent to FedEx', name: 'Label Created', date: '2025-03-10T12:55:00-07:00' },
-      { desc: 'Picked up', name: 'We Have Your Parcel', date: '2025-03-11T00:00:00' },
-      { desc: 'At local FedEx facility', name: 'On the Way', date: '2025-03-13T06:22:00-07:00' },
-      { desc: 'On FedEx vehicle for delivery', name: 'Out for Delivery', date: '2025-03-13T06:33:00-07:00' },
-      { desc: 'Delivered', name: 'Delivered', date: '2025-03-13T11:59:19-07:00' },
-    ];
+    // Extract dates directly from API response without modification
+    actualDeliveryDate = dateAndTimes.find((item) => item.type === 'ACTUAL_DELIVERY')?.dateTime || null;
+    estimatedDeliveryDate = dateAndTimes.find((item) => item.type === 'ESTIMATED_DELIVERY')?.dateTime || null;
+    outForDeliveryDate = scanEvents.find((e) => e.eventDescription.toLowerCase().includes('on fedex vehicle for delivery'))?.date || null;
 
-    desiredEvents.forEach((desired) => {
-      const event = scanEvents.find((e) => e.eventDescription === desired.desc && e.date === desired.date);
-      if (event) {
-        const eventLocation = `${event.scanLocation?.city || 'Unknown'}, ${event.scanLocation?.stateOrProvinceCode || ''}`.toUpperCase();
-        trackingEvents.push({
-          event: desired.name,
-          location: eventLocation,
-          dateTime: formatDateTime(event.date),
-        });
-      }
-    });
-
-    if (status.includes('delivered') && relevantDeliveryDate) {
-      const deliveryLocation = `${deliveryDetails.actualDeliveryAddress?.city || 'Unknown'}, ${deliveryDetails.actualDeliveryAddress?.stateOrProvinceCode || ''} US`.toUpperCase();
-      trackingEvents.length = 0; // Clear and rebuild
-      desiredEvents.forEach((desired) => {
-        if (desired.name === 'Delivered') {
-          trackingEvents.push({
-            event: 'Delivered',
-            location: deliveryLocation,
-            dateTime: formatDateTime(relevantDeliveryDate),
-          });
-        } else {
-          const event = scanEvents.find((e) => e.eventDescription === desired.desc && e.date === desired.date);
-          if (event) {
-            const eventLocation = `${event.scanLocation?.city || 'Unknown'}, ${event.scanLocation?.stateOrProvinceCode || ''}`.toUpperCase();
-            trackingEvents.push({
-              event: desired.name,
-              location: eventLocation,
-              dateTime: formatDateTime(event.date),
-            });
-          }
-        }
-      });
-    }
+    const trackingEvents = scanEvents.map((event) => ({
+      event: event.eventDescription,
+      location: `${event.scanLocation?.city || 'Unknown'}, ${event.scanLocation?.stateOrProvinceCode || ''}`.toUpperCase(),
+      dateTime: formatDateTime(event.date), // Keep exact API timestamp
+      derivedStatus: event.derivedStatus || 'Unknown',
+    }));
 
     const trackingData = {
       trackingNumber,
       statusByLocale: latestStatus.statusByLocale || 'Unknown',
       description: latestStatus.description || 'No description available',
-      deliveryDate: relevantDeliveryDate ? formatDateTime(relevantDeliveryDate) : null,
+      actualDeliveryDate: actualDeliveryDate, // Exact as received from API
+      estimatedDeliveryDate: estimatedDeliveryDate, // Exact as received from API
+      outForDeliveryDate: outForDeliveryDate, // Exact as received from API
       deliveryAttempts: deliveryDetails.deliveryAttempts || '0',
       receivedByName: deliveryDetails.receivedByName || null,
-      events: trackingEvents.reverse(),
+      serviceType: serviceDetail.description || 'FedEx',
+      packaging: packageDetails.packagingDescription?.description || 'Package',
+      weight: `${weight.value || 'Unknown'} ${weight.units || ''}`,
+      shipperCity: trackResult.shipperInformation?.address?.city || 'Unknown',
+      recipientCity: trackResult.recipientInformation?.address?.city || 'Unknown',
+      events: trackingEvents.reverse(), // Latest first
     };
-    // console.log(trackingData, 'trackingData');
 
+    console.log('Processed Tracking Data:', trackingData); // Debug processed data
     res.status(200).json(trackingData);
   } catch (error) {
     console.error('Error fetching FedEx tracking details:', error.response?.data || error.message);

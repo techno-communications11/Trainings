@@ -3,15 +3,13 @@ require('dotenv').config();
 
 function formatDeliveryDate(rawDate, rawTime = '000000') {
   if (!rawDate) return null;
-
   const year = rawDate.slice(0, 4);
   const month = rawDate.slice(4, 6);
   const day = rawDate.slice(6, 8);
   const hours = rawTime.slice(0, 2);
   const minutes = rawTime.slice(2, 4);
   const seconds = rawTime.slice(4, 6);
-
-  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}-05:00`; // Assuming CDT for consistency
 }
 
 async function getupsindividual(req, res) {
@@ -55,17 +53,12 @@ async function getupsindividual(req, res) {
       }
     );
 
-    // Process UPS API response
     const shipment = trackResponse.data?.trackResponse?.shipment?.[0];
-    console.log(shipment, 'ss'); // Log full shipment data
-
     if (!shipment) {
       throw new Error('No shipment data found');
     }
 
     const packageDetails = shipment.package?.[0];
-    console.log(packageDetails, 'ppp'); // Log package details
-
     if (!packageDetails) {
       throw new Error('No package details available');
     }
@@ -75,57 +68,37 @@ async function getupsindividual(req, res) {
     const deliveryTime = packageDetails.deliveryTime?.endTime || null;
     const activity = packageDetails.activity || [];
 
-    // Format events for client response
-    const trackingEvents = [];
+    // Map UPS activities to events
+    const trackingEvents = activity.map((a) => ({
+      event: a.status?.type === 'I' && a.status?.description === 'Origin Scan'
+        ? 'Order Processed: Ready for UPS'
+        : a.status?.description || 'Unknown',
+      location: a.location?.address?.city
+        ? `${a.location.address.city}, ${a.location.address.stateProvince || ''}, US`
+        : 'Unknown',
+      dateTime: formatDeliveryDate(a.date, a.time),
+    }));
 
-    // Add "Label Created" (earliest activity)
-    if (activity.length > 0) {
-      const firstEvent = activity[activity.length - 1];
-      trackingEvents.push({
-        event: 'Label Created',
-        location: 'United States', // Assuming origin country if not specified
-        dateTime: formatDeliveryDate(firstEvent.date, firstEvent.time),
-      });
-    }
+    // Find the last "Delivered" or "DELIVERED" event from activities
+    const deliveredEvent = trackingEvents.findLast(e => e.event.toLowerCase().includes('delivered'));
+    const deliveryDateTime = deliveredEvent ? deliveredEvent.dateTime : formatDeliveryDate(deliveryDate, deliveryTime);
 
-    // Add key intermediate events (simplified example based on your request)
-    const keyActivities = activity.filter(a => 
-      ['092923', '052028', '030551'].includes(a.time) // Example times from your request
-    );
-    keyActivities.forEach(a => {
-      let eventName = '';
-      if (a.time === '030551') eventName = 'We Have Your Parcel';
-      else if (a.time === '052028') eventName = 'On the Way';
-      else if (a.time === '092923') eventName = 'Out for Delivery';
-
-      trackingEvents.push({
-        event: eventName,
-        location: a.location?.address?.city ? `${a.location.address.city}, ${a.location.address.stateProvince}, United States` : 'Unknown',
-        dateTime: formatDeliveryDate(a.date, a.time),
-      });
-    });
-
-    // Add "Delivered" event
-    if (latestStatus.description?.toLowerCase() === 'delivered') {
-      trackingEvents.push({
-        event: 'Delivered',
-        location: packageDetails.packageAddress?.find(addr => addr.type === 'DESTINATION')?.address?.city 
-          ? `${packageDetails.packageAddress[1].address.city}, ${packageDetails.packageAddress[1].address.stateProvince}, US`
-          : 'Unknown',
-        dateTime: formatDeliveryDate(deliveryDate, deliveryTime),
-      });
-    }
-
-    // Prepare response data
     const trackingData = {
       trackingNumber,
       statusByLocale: latestStatus.description || 'Unknown',
       description: latestStatus.description || 'No description available',
-      deliveryDate: deliveryDate ? formatDeliveryDate(deliveryDate, deliveryTime) : null,
+      deliveryDate: deliveryDateTime, // Use the last delivered event date or fallback to deliveryDate
+      deliveryAttempts: packageDetails.deliveryInformation?.attempts || '0',
       receivedByName: packageDetails.deliveryInformation?.receivedBy || null,
-      events: trackingEvents.reverse(), // Reverse to show latest first
+      serviceType: shipment.service?.description || 'UPS', // Corrected to 'UPS' as default
+      weight: packageDetails.weight?.displayWeight || 'Unknown',
+      shipperCity: shipment.shipperAddress?.city || 'Unknown',
+      recipientCity: packageDetails.packageAddress?.find(addr => addr.type === 'DESTINATION')?.address?.city || 'Unknown',
+      events: trackingEvents.reverse(), // Latest first, like UPS
     };
- console.log(trackingData, 'trackingData'); // Log tracking data
+
+    console.log('Raw API Response:', trackResponse.data); // Debug raw response
+    console.log('Processed Tracking Data:', trackingData); // Debug final data
     res.status(200).json(trackingData);
   } catch (error) {
     console.error('Error fetching UPS tracking details:', error.response?.data || error.message);

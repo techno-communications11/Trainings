@@ -2,7 +2,7 @@ const db = require('../db');
 
 function deleteUserTrackingData(userId, callback) {
   const query = `DELETE FROM TrackingData WHERE user_id = ?`;
-  db.execute(query, [userId], (error, results) => {
+  db.execute(query, [userId], (error) => {
     if (error) {
       console.error('Error deleting user data:', error.message);
       return callback(error);
@@ -15,16 +15,23 @@ function deleteUserTrackingData(userId, callback) {
 function insertTrackingData(data, callback) {
   const query = `
     INSERT INTO TrackingData 
-    (trackingNumber, statusByLocale, description, deliveryDate, deliveryAttempts, receivedByName, user_id) 
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    (trackingNumber, statusByLocale, description, actualDeliveryDate, estimatedDeliveryDate, outForDeliveryDate, 
+     deliveryAttempts, receivedByName, serviceType, weight, shipperCity, recipientCity, user_id) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
   const values = [
     data.trackingNumber || null,
     data.statusByLocale || null,
     data.description || null,
-    data.deliveryDate || null,
+    data.actualDeliveryDate || null,
+    data.estimatedDeliveryDate || null,
+    data.outForDeliveryDate || null,
     data.deliveryAttempts || null,
     data.receivedByName || null,
+    data.serviceType || null,
+    data.weight || null,
+    data.shipperCity || null,
+    data.recipientCity || null,
     data.user_id || null,
   ];
 
