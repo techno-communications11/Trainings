@@ -76,21 +76,32 @@ const TrackingDataTable = () => {
   const formatDateTime = (dateTime) => {
     if (!dateTime) return { date: '/', time: '/' };
 
-    // Parse the date string into a Date object
-    const dateObj = new Date(dateTime);
+    // Extract the raw date (replace '-' with '/') and time parts
+    const [datePart, timePartWithOffset] = dateTime.split('T');
+    const formattedDate = datePart.replace(/-/g, '/'); // e.g., "2025/04/09"
 
-    // Check if the date is valid
-    if (isNaN(dateObj.getTime())) return { date: '/', time: '/' };
+    // Extract time (HH:MM:SS) before the offset
+    const rawTime = timePartWithOffset ? timePartWithOffset.split(/[-+Z]/)[0] : '';
+    if (!rawTime) return { date: formattedDate, time: '/' };
 
-    // Format date and time for human readability in America/Chicago time zone
-    const optionsDate = { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'America/Chicago' };
-    const optionsTime = { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Chicago' };
+    // Convert 24-hour time to 12-hour AM/PM format
+    const [hours, minutes, seconds] = rawTime.split(':');
+    let period = 'AM';
+    let twelveHour = parseInt(hours, 10);
 
-    const date = dateObj.toLocaleDateString('en-US', optionsDate); // e.g., "Mar 14, 2025"
-    const time = dateObj.toLocaleTimeString('en-US', optionsTime); // e.g., "11:40 AM"
+    if (twelveHour >= 12) {
+        period = 'PM';
+        if (twelveHour > 12) twelveHour -= 12;
+    }
+    if (twelveHour === 0) twelveHour = 12; // Handle midnight (00:00)
 
-    return { date, time };
-  };
+    const formattedTime = `${twelveHour}:${minutes}:${seconds} ${period}`;
+
+    return {
+        date: formattedDate, // e.g., "2025/04/09" (only '-' replaced with '/')
+        time: formattedTime, // e.g., "9:57:14 AM" (converted to 12-hour)
+    };
+};
 
   const filteredData = trackingData.filter(item =>
     (String(item.trackingNumber)?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
