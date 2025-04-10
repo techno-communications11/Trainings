@@ -36,21 +36,19 @@ const uploadsRouter = require('./routes/uploads.router.js');
 app.use((req, res, next) => {
   let ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress || req.socket.remoteAddress;
   
-  // Convert IPv6 to IPv4 if mapped
+  // Remove the IPv4 mapping if present, but keep IPv6 format
   if (ip.includes('::ffff:')) {
-    ip = ip.split('::ffff:')[1];
-  } else if (ip === '::1') {
-    ip = '127.0.0.1'; // Localhost IPv4
+    ip = ip.replace('::ffff:', '');
   }
   
-  console.log('Client IP (IPv4):', ip);
-  req.clientIp = ip; // Store IPv4 address
+  console.log('Client IP:', ip); // Now shows original format (IPv6 or IPv4)
+  req.clientIp = ip;
   next();
 });
 
-
 app.use('/photos', uploadsRouter);
 
+// Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Error:', err.stack);
   if (err.code === 'LIMIT_FILE_SIZE') {
@@ -66,6 +64,7 @@ app.use((err, req, res, next) => {
   });
 });
 
+// 404 handler
 app.use((req, res) => {
   res.status(404).json({ 
     success: false, 

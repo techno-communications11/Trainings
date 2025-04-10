@@ -23,7 +23,7 @@ const Login = () => {
     if (error && (credentials.email || credentials.password)) {
       setError("");
     }
-  }, [credentials.email, credentials.password]);
+  }, [credentials.email, credentials.password, error]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -46,27 +46,26 @@ const Login = () => {
     return true;
   };
 
- // Login.js (relevant portion only)
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  if (!validateForm()) return;
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!validateForm()) return;
 
-  setIsLoading(true);
-  try {
-    const loginResponse = await fetch(`${process.env.REACT_APP_BASE_URL}/login`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      credentials: "include",
-      body: JSON.stringify(credentials),
-    });
+    setIsLoading(true);
+    try {
+      const loginResponse = await fetch(`${process.env.REACT_APP_BASE_URL}/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(credentials),
+      });
 
-    const loginData = await loginResponse.json();
-    if (!loginResponse.ok) {
-      throw new Error(loginData.error || "Login failed");
-    }
+      const loginData = await loginResponse.json();
+      if (!loginResponse.ok) {
+        throw new Error(loginData.error || "Login failed");
+      }
 
       const userResponse = await fetch(`${process.env.REACT_APP_BASE_URL}/users/me`, {
         method: "GET",
@@ -74,19 +73,38 @@ const handleSubmit = async (e) => {
         headers: { Accept: "application/json" },
       });
 
-    const userData = await userResponse.json();
-    if (!userResponse.ok) {
-      throw new Error(userData.error || "Failed to fetch user data");
-    }
+      // Location logging should be inside the try block after successful login
+      const locationResponse = await fetch('https://ipapi.co/json/');
+      if (!locationResponse.ok) throw new Error('Failed to get location data');
+      const locationData = await locationResponse.json();
+      
+      await fetch(`${process.env.REACT_APP_BASE_URL}/log-location`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          ip: locationData.ip,
+          city: locationData.city,
+          region: locationData.region,
+          country: locationData.country_name,
+          timezone: locationData.timezone,
+          timestamp: new Date().toISOString(),
+        }),
+      });
 
-    updateAuth(true, userData.role, userData.id);
-  } catch (err) {
-    setError(err.message);
-    console.error("Login error:", err);
-  } finally {
-    setIsLoading(false);
-  }
-};
+      const userData = await userResponse.json();
+      if (!userResponse.ok) {
+        throw new Error(userData.error || "Failed to fetch user data");
+      }
+
+      updateAuth(true, userData.role, userData.id);
+    } catch (err) {
+      setError(err.message);
+      console.error("Login error:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <motion.div
