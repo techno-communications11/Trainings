@@ -31,6 +31,24 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 const uploadsRouter = require('./routes/uploads.router.js');
+
+// Middleware in your main server file
+app.use((req, res, next) => {
+  let ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress || req.socket.remoteAddress;
+  
+  // Convert IPv6 to IPv4 if mapped
+  if (ip.includes('::ffff:')) {
+    ip = ip.split('::ffff:')[1];
+  } else if (ip === '::1') {
+    ip = '127.0.0.1'; // Localhost IPv4
+  }
+  
+  console.log('Client IP (IPv4):', ip);
+  req.clientIp = ip; // Store IPv4 address
+  next();
+});
+
+
 app.use('/photos', uploadsRouter);
 
 app.use((err, req, res, next) => {

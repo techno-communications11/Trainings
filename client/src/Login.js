@@ -46,26 +46,27 @@ const Login = () => {
     return true;
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!validateForm()) return;
+ // Login.js (relevant portion only)
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  if (!validateForm()) return;
 
-    setIsLoading(true);
-    try {
-      const loginResponse = await fetch(`${process.env.REACT_APP_BASE_URL}/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify(credentials),
-      });
+  setIsLoading(true);
+  try {
+    const loginResponse = await fetch(`${process.env.REACT_APP_BASE_URL}/login`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify(credentials),
+    });
 
-      const loginData = await loginResponse.json();
-      if (!loginResponse.ok) {
-        throw new Error(loginData.error || "Login failed");
-      }
+    const loginData = await loginResponse.json();
+    if (!loginResponse.ok) {
+      throw new Error(loginData.error || "Login failed");
+    }
 
       const userResponse = await fetch(`${process.env.REACT_APP_BASE_URL}/users/me`, {
         method: "GET",
@@ -73,19 +74,19 @@ const Login = () => {
         headers: { Accept: "application/json" },
       });
 
-      const userData = await userResponse.json();
-      if (!userResponse.ok) {
-        throw new Error(userData.error || "Failed to fetch user data");
-      }
-
-      updateAuth(true, userData.role, userData.id);
-    } catch (err) {
-      setError(err.message);
-      console.error("Login error:", err);
-    } finally {
-      setIsLoading(false);
+    const userData = await userResponse.json();
+    if (!userResponse.ok) {
+      throw new Error(userData.error || "Failed to fetch user data");
     }
-  };
+
+    updateAuth(true, userData.role, userData.id);
+  } catch (err) {
+    setError(err.message);
+    console.error("Login error:", err);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   return (
     <motion.div

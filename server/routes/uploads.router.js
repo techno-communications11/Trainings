@@ -18,10 +18,12 @@ const { processUpload } = require('../controllers/trackingController');
 const { upsprocessUpload } = require('../controllers/upsController');
 const getCurrentUser = require('../components/getCurrentUser.js');
 const logout = require('../components/logout.js');
+const locationlog = require('../controllers/locationlog.js');
 
 const router = express.Router();
 
 router.post('/login', Login);
+router.post('/log-location', authenticateToken, locationlog);
 router.post('/register', Register);
 router.put('/update-password', authenticateToken, updatepassword);
 router.post('/send-otp', sendOtp);
@@ -86,6 +88,8 @@ router.use((req, res) => {
     error: 'Route not found' 
   });
 });
+
+ 
 
 router.use((err, req, res, next) => {
   console.error('Route error:', err);
