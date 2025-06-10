@@ -42,7 +42,6 @@ const handleCrediantalsFileUpload = (req, res) => {
           return res.status(500).json({ message: 'Failed to truncate the table.' });
         }
 
-        // console.log('Table truncated successfully.');
 
         // Step 2: Insert new data using INSERT IGNORE to skip duplicates
         const insertPromises = results.map((row) => {
@@ -50,14 +49,10 @@ const handleCrediantalsFileUpload = (req, res) => {
           const doorcode = row.doorcode; // Match database column name
           const name = row.name; // Make sure it's extracting the name correctly
 
-          // Log the values before inserting
-          // console.log(`Inserting NTID: ${ntid}, Doorcode: ${doorcode}, Name: ${name}`);
-
           const sql = 'INSERT IGNORE INTO credentials (ntid, doorcode, Name) VALUES (?, ?, ?)';
           return new Promise((resolve, reject) => {
             db.query(sql, [ntid, doorcode, name], (err, result) => {
               if (err) {
-                // console.error('Database insertion failed:', err);
                 reject(err);
               } else {
                 resolve(result);

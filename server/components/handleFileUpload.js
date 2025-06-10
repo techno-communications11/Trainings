@@ -1,5 +1,4 @@
 const fs = require("fs");
-const path = require("path");
 const csv = require("csv-parser");
 const db = require("../db.js");
 
@@ -8,7 +7,7 @@ const requiredAssignments = [
   "Ready Express Payments, Payment Options",
   "Ready! Express | Activations Overview",
   "Ready! Express | Dealer Support Group AAL OBO",
-  "Ready! Express | Metro Flex",
+  // "Ready! Express | Metro Flex",
   "Ready! Express | Payments Overview",
   "Ready! Express | Troubleshooting Overview",
   "Ready! Express | Upgrades Overview",
@@ -36,6 +35,7 @@ const rdmAssignments = [
 function processAssignments(assignments) {
   const allRequiredCompleted = requiredAssignments.every((reqAssignment) => {
     const found = assignments.find((a) => a.assignmentName === reqAssignment);
+    console.log(found,'founs')
     return found && found.status === "Completed";
   });
 
@@ -51,6 +51,12 @@ function processAssignments(assignments) {
         assignment.status === "Incomplete")
   );
 
+  console.log("Processed Assignments Result:", {
+    allRequiredCompleted,
+    rdmAssignmentsIncomplete,
+    hasIncompleteRequired,
+  });
+
   return {
     needsTrainingApproval: hasIncompleteRequired,
     needsRDMApproval: allRequiredCompleted && rdmAssignmentsIncomplete,
@@ -59,14 +65,13 @@ function processAssignments(assignments) {
 
 function handleFileUpload(req, res) {
   if (!req.files || Object.keys(req.files).length === 0) {
+    // console.log("No files uploaded.");
     return res.status(400).json({ message: "No files were uploaded." });
   }
 
-  // const file1Path = path.join("uploads", req.files.file1[0].originalname);
-  // const file2Path = path.join("uploads", req.files.file2[0].originalname);
-
   const file1Path = req.files.file1[0].path;
-const file2Path = req.files.file2[0].path;
+  const file2Path = req.files.file2[0].path;
+  // console.log("Uploaded file paths:", { file1Path, file2Path });
 
   const matchedRows = [];
   const rdmApproval = new Set();
@@ -75,7 +80,8 @@ const file2Path = req.files.file2[0].path;
   const loginsToMatch = new Map();
   const userAssignments = new Map();
 
-  // Step 1: Parse first file to get incomplete logins and their Assigned Date
+  // console.log("Parsing first file (incomplete logins)...");
+
   fs.createReadStream(file1Path)
     .pipe(csv())
     .on("data", (row) => {
@@ -84,7 +90,10 @@ const file2Path = req.files.file2[0].path;
       }
     })
     .on("end", () => {
-      // Step 2: Parse second file for detailed assignment data
+      // console.log("Logins to match from file 1:", loginsToMatch);
+
+      // console.log("Parsing second file (assignment data)...");
+
       fs.createReadStream(file2Path)
         .pipe(csv())
         .on("data", (row) => {
@@ -102,10 +111,17 @@ const file2Path = req.files.file2[0].path;
           }
         })
         .on("end", () => {
-          // Process all assignments after collecting all data
+          // console.log("User assignments collected:", userAssignments);
+
           for (const [login, assignments] of userAssignments) {
             const { needsTrainingApproval, needsRDMApproval } =
               processAssignments(assignments);
+
+            // console.log(`Login: ${login}`, {
+            //   needsTrainingApproval,
+            //   needsRDMApproval,
+            // });
+             console.log(login,"ids")
 
             if (needsRDMApproval) {
               rdmApproval.add(login);
@@ -114,28 +130,28 @@ const file2Path = req.files.file2[0].path;
             }
           }
 
-          // Clean up uploaded files
+          // console.log("Final Approval Lists:", {
+          //   rdmApproval: Array.from(rdmApproval),
+          //   trainingApproval: Array.from(trainingApproval),
+          // });
+
           try {
             fs.unlinkSync(file1Path);
             fs.unlinkSync(file2Path);
-            console.log("Files removed from the upload folder.");
+            // console.log("Uploaded files deleted.");
           } catch (err) {
-            console.error("Failed to delete files from upload folder:", err);
+            console.error("File deletion error:", err);
           }
 
-          // Truncate trainingreport table
           const truncateSQL = "TRUNCATE TABLE trainingreport";
           db.query(truncateSQL, (truncateErr) => {
             if (truncateErr) {
-              console.error("Failed to truncate the table:", truncateErr);
+              console.error("Truncate failed:", truncateErr);
               return res.status(500).json({
                 message: "Failed to truncate the table.",
               });
             }
 
-            // console.log("Table truncated successfully.");
-
-            // Prepare data for database insertion
             const insertData = [];
 
             rdmApproval.forEach((login) => {
@@ -143,7 +159,7 @@ const file2Path = req.files.file2[0].path;
             });
 
             trainingApproval.forEach((login) => {
-              if (!rdmApproval.has(login)) {  // Ensure no duplicates
+              if (!rdmApproval.has(login)) {
                 insertData.push([
                   login,
                   loginsToMatch.get(login),
@@ -152,22 +168,20 @@ const file2Path = req.files.file2[0].path;
               }
             });
 
+            // console.log("Insert Data Prepared:", insertData);
+
             if (insertData.length > 0) {
               const insertSQL =
                 "INSERT INTO trainingreport (Ntid, AssignedDate, Status) VALUES ?";
               db.query(insertSQL, [insertData], (insertErr) => {
                 if (insertErr) {
-                  console.error(
-                    "Database insertion failed for insertData:",
-                    insertErr
-                  );
+                  // console.error("Insert failed:", insertErr);
                   return res.status(500).json({
                     message: "Database insertion failed.",
                   });
                 }
 
-                // console.log("Data inserted successfully.");
-                // Send response
+                // console.log("Data inserted successfully into DB.");
                 res.status(200).json({
                   message: "Files processed successfully!",
                   matchedRows,
@@ -176,6 +190,7 @@ const file2Path = req.files.file2[0].path;
                 });
               });
             } else {
+              // console.log("No data to insert.");
               res.status(200).json({
                 message: "No data to insert.",
                 matchedRows,

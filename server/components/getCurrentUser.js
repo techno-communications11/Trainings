@@ -2,7 +2,6 @@
 async function getCurrentUser(req, res) {
     try {
       const user = req.user; // Decoded user data from authenticateToken middleware
-       console.log(user,'usersdmn');
       res.status(200).json({
         id: user.id,
         email: user.email,
