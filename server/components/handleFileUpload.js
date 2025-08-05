@@ -24,7 +24,7 @@ const requiredAssignments = [
   "Ready! Express | Payments",
   "Ready! Express | Troubleshooting",
   "Ready! Express | Upgrades",
-  "Ready! Express | Welcome & Rateplan",
+  "Ready! Express | Welcome",
 ];
 
 const rdmAssignments = [
