@@ -2,29 +2,25 @@ const fs = require("fs");
 const csv = require("csv-parser");
 const db = require("../db.js");
 
+
+
 const requiredAssignments = [
-  "Ready Express Payments, Introduction",
-  "Ready Express Payments, Payment Options",
-  "Ready! Express | Activations Overview",
-  "Ready! Express | Dealer Support Group AAL OBO",
-  // "Ready! Express | Metro Flex",
-  "Ready! Express | Payments Overview",
-  "Ready! Express | Troubleshooting Overview",
-  "Ready! Express | Upgrades Overview",
-  "Ready! Express | Welcome Overview",
-  "Ready! Express Activations, Device Protection",
-  "Ready! Express Activations, Introduction",
-  "Ready! Express Troubleshooting, Introduction",
-  "Ready! Express Troubleshooting, Returns & Exchanges",
-  "Ready! Express Upgrades, Big 5 Review",
-  "Ready! Express Upgrades, Introduction",
-  "Ready! Express Welcome, Introduction",
-  "Ready! Express Welcome, Systems Overview",
-  "Ready! Express | Activations",
-  "Ready! Express | Payments",
-  "Ready! Express | Troubleshooting",
-  "Ready! Express | Upgrades",
-  "Ready! Express | Welcome",
+"Ready! Express | Activations & Upgrades",
+"Ready! Express | Onboarding",
+"Ready! Express | Payments & Troubleshooting",
+"Ready! Express | Welcome & Rate Plans",
+"Ready Express Payments, Payment Options",
+"Ready! Express | Activations Overview",
+"Ready! Express | Dealer Support Group AAL OBO",
+"Ready! Express | Leader Connect Prep",
+"Ready! Express | Payments Overview",
+"Ready! Express | Troubleshooting Overview",
+"Ready! Express | Upgrades Overview",
+"Ready! Express | Welcome Overview",
+"Ready! Express Activations, Device Protection",
+"Ready! Express Troubleshooting, Returns & Exchanges",
+"Ready! Express Upgrades, Big 5 Review",
+"Ready! Express Welcome, Systems Overview"
 ];
 
 const rdmAssignments = [
@@ -33,6 +29,7 @@ const rdmAssignments = [
 ];
 
 function processAssignments(assignments) {
+
   const allRequiredCompleted = requiredAssignments.every((reqAssignment) => {
     const found = assignments.find((a) => a.assignmentName === reqAssignment);
     console.log(found,'founs')
@@ -46,7 +43,7 @@ function processAssignments(assignments) {
 
   const hasIncompleteRequired = assignments.some(
     (assignment) =>
-      !assignment.assignmentName.toLowerCase().includes("optional") &&
+      !assignment.assignmentName.toLowerCase().includes("Optional") &&
       (assignment.status === "Not Attempted" ||
         assignment.status === "Incomplete")
   );

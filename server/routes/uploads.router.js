@@ -16,7 +16,6 @@ const { getAllTrackingData } = require('../services/getAllTrackingData');
 const { gettrackindividual } = require('../services/gettrackindividual');
 const { processUpload } = require('../controllers/trackingController');
 const { upsprocessUpload } = require('../controllers/upsController');
-const getCurrentUser = require('../components/getCurrentUser.js');
 const logout = require('../components/logout.js');
 const locationlog = require('../controllers/locationlog.js');
 
@@ -57,7 +56,6 @@ router.post('/upload-ups',
 router.get('/getalltrackingdata', authenticateToken, getAllTrackingData);
 router.post('/gettrackindividual', authenticateToken, gettrackindividual);
 router.post('/getupsindividual', authenticateToken, getupsindividual);
-router.get('/users/me', authenticateToken, getCurrentUser);
 router.get('/tracking-details', authenticateToken, getTrackingDetails);
 
 router.post('/upload', 

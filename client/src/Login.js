@@ -1,9 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+// Login.js
+import { useState, useEffect } from 'react';
 import './Login.css';
 import { FaEye, FaEyeSlash, FaEnvelope, FaLock } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 import { useMyContext } from './MyContext';
+import { validateLoginForm } from './utils/validators';
+import { useNavigate } from 'react-router-dom';
+import { loginUser } from './services/authService';
 
 const Login = () => {
   const [credentials, setCredentials] = useState({ email: "", password: "" });
@@ -13,94 +16,38 @@ const Login = () => {
   const navigate = useNavigate();
   const { updateAuth, authState } = useMyContext();
 
+  // 🔹 Redirect if already logged in
   useEffect(() => {
-    if (authState.isAuthenticated && !authState.loading) {
-      navigate(authState.role === 'Training' ? "/home" : "/trackhome", { replace: true });
+    if ((authState.isAuthenticated && !authState.loading) || localStorage.getItem("userdata")) {
+      navigate(authState.role === "Training" ? "/home" : "/traininghome", { replace: true });
     }
-  }, [authState.isAuthenticated, authState.loading, authState.role, navigate]);
-
-  useEffect(() => {
-    if (error && (credentials.email || credentials.password)) {
-      setError("");
-    }
-  }, [credentials.email, credentials.password, error]);
+  }, [authState, navigate, authState.isAuthenticated, authState.loading, authState.role]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setCredentials((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const validateForm = () => {
-    if (!credentials.email || !credentials.password) {
-      setError("Both email and password are required");
-      return false;
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(credentials.email)) {
-      setError("Please enter a valid email address");
-      return false;
-    }
-    if (credentials.password.length < 6) {
-      setError("Password must be at least 6 characters");
-      return false;
-    }
-    return true;
+    if (error) setError("");
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validateForm()) return;
+    const validationError = validateLoginForm(credentials);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
 
     setIsLoading(true);
     try {
-      const loginResponse = await fetch(`${process.env.REACT_APP_BASE_URL}/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify(credentials),
-      });
-
-      const loginData = await loginResponse.json();
-      if (!loginResponse.ok) {
-        throw new Error(loginData.error || "Login failed");
-      }
-
-      const userResponse = await fetch(`${process.env.REACT_APP_BASE_URL}/users/me`, {
-        method: "GET",
-        credentials: "include",
-        headers: { Accept: "application/json" },
-      });
-
-      // Location logging should be inside the try block after successful login
-      const locationResponse = await fetch('https://ipapi.co/json/');
-      if (!locationResponse.ok) throw new Error('Failed to get location data');
-      const locationData = await locationResponse.json();
-      
-      await fetch(`${process.env.REACT_APP_BASE_URL}/log-location`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          ip: locationData.ip,
-          city: locationData.city,
-          region: locationData.region,
-          country: locationData.country_name,
-          timezone: locationData.timezone,
-          timestamp: new Date().toISOString(),
-        }),
-      });
-
-      const userData = await userResponse.json();
-      if (!userResponse.ok) {
-        throw new Error(userData.error || "Failed to fetch user data");
-      }
-
-      updateAuth(true, userData.role, userData.id);
+      const data = await loginUser(credentials);
+      updateAuth(true, data.user.department, data.user.id);
+      localStorage.setItem("userdata", JSON.stringify(data));
+      localStorage.setItem("userRole", data.user.department);
+      localStorage.setItem("userId", data.user.id);
+      navigate(data.user.department === "Training" ? "/home" : "/traininghome", { replace: true });
+      setCredentials({ email: "", password: "" });
     } catch (err) {
       setError(err.message);
-      console.error("Login error:", err);
     } finally {
       setIsLoading(false);
     }
@@ -112,11 +59,9 @@ const Login = () => {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.6 }}
       className="container-fluid min-vh-100 d-flex flex-column justify-content-center position-relative"
-      style={{
-        background: "linear-gradient(135deg, #ffffff 0%, #f3e7e9 100%)",
-        overflow: "hidden",
-      }}
+      style={{ background: "linear-gradient(135deg, #ffffff 0%, #f3e7e9 100%)", overflow: "hidden" }}
     >
+      {/* Heading */}
       <motion.h1
         initial={{ y: -50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -127,6 +72,7 @@ const Login = () => {
       </motion.h1>
 
       <div className="row w-100 m-0">
+        {/* Left side (logo) */}
         <motion.div
           initial={{ x: -50, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
@@ -144,6 +90,7 @@ const Login = () => {
           />
         </motion.div>
 
+        {/* Right side (form) */}
         <motion.div
           initial={{ x: 50, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
@@ -158,20 +105,17 @@ const Login = () => {
             }}
           >
             <div className="card-body">
-              {error && (
-                <div className="alert alert-danger" role="alert">
-                  {error}
-                </div>
-              )}
+              {error && <div className="alert alert-danger">{error}</div>}
 
               <form onSubmit={handleSubmit}>
                 <h4 className="mb-4 text-center text-dark">Login</h4>
+
+                {/* Email */}
                 <div className="mb-3 position-relative">
                   <FaEnvelope className="position-absolute top-50 start-0 ms-3 translate-middle-y" style={{ color: '#E10174' }} />
                   <input
                     type="email"
                     className="form-control shadow-none border ps-5"
-                    id="email"
                     name="email"
                     value={credentials.email}
                     onChange={handleChange}
@@ -179,12 +123,13 @@ const Login = () => {
                     required
                   />
                 </div>
+
+                {/* Password */}
                 <div className="mb-3 position-relative">
                   <FaLock className="position-absolute top-50 start-0 ms-3 translate-middle-y" style={{ color: '#E10174' }} />
                   <input
                     type={showPassword ? 'text' : 'password'}
                     className="form-control shadow-none border ps-5"
-                    id="password"
                     name="password"
                     value={credentials.password}
                     onChange={handleChange}
@@ -200,9 +145,13 @@ const Login = () => {
                     {showPassword ? <FaEyeSlash style={{ color: '#E10174' }} /> : <FaEye style={{ color: '#E10174' }} />}
                   </button>
                 </div>
+
+                {/* Forgot Password */}
                 <a href="/user" className="text-decoration-none" style={{ color: '#E10174' }}>
                   Forgot password?
                 </a>
+
+                {/* Submit */}
                 <motion.button
                   type="submit"
                   className="btn w-100 mt-3 mb-3 text-white"

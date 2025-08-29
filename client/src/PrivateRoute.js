@@ -1,11 +1,14 @@
-import { Navigate } from "react-router-dom";
+// PrivateRoute.js
 import { useMyContext } from "./MyContext";
+import Loader from "./utils/Loader";
+import { Navigate } from "react-router-dom";
 
 const PrivateRoute = ({ element }) => {
   const { authState } = useMyContext();
+  
 
   if (authState.loading) {
-    return <div className="container mt-5 text-center">Loading...</div>;
+    return (<Loader/>);
   }
 
   if (!authState.isAuthenticated) {

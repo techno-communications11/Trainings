@@ -1,282 +1,93 @@
-import React, { useState, useEffect } from 'react';
-import { Container, Table, Alert, Dropdown, OverlayTrigger, Popover, Card, Col, Row } from 'react-bootstrap';
-import '../Login.css';
-import { MdOutlineKeyboardArrowDown } from "react-icons/md";
-import { FaUserCheck, FaGraduationCap, FaChartLine, FaClock } from 'react-icons/fa';
+import { useState } from "react";
+import { Container, Row, Col } from "react-bootstrap";
 import Lottie from "react-lottie";
 import animationData from "./Animation.json";
+import { useTrackingData } from "../utils/useTrackingData";
+import { DashboardCard } from "../utils//DashboardCard";
+import { MarketDropdown } from "../utils//MarketDropdown";
+import { TrackingTable } from "../utils//TrackingTable";
+import {
+  FaUserCheck,
+  FaGraduationCap,
+  FaChartLine,
+  FaClock,
+} from "react-icons/fa";
 
-function Home() {
-  const [trackingDetails, setTrackingDetails] = useState([]);
-  const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [selectedMarket, setSelectedMarket] = useState('All');
-  const [isPopoverOpen, setIsPopoverOpen] = useState(false); // State to control Popover visibility
-  let training = 0;
-  let rdm = 0;
-  let passdue = 0;
-
-  useEffect(() => {
-    const fetchTrackingDetails = async () => {
-      try {
-        setLoading(true);
-        setError(null); // Reset error state on new fetch
-
-        const response = await fetch(`${process.env.REACT_APP_BASE_URL}/tracking-details`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
-          credentials: 'include' // Important for sending cookies
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-
-        if (!data.trackingDetails) {
-          throw new Error('No tracking details found in response');
-        }
-
-        setTrackingDetails(data.trackingDetails);
-
-      } catch (err) {
-        setError(err.message || 'Error fetching tracking details');
-        console.error('Fetch error:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTrackingDetails();
-  }, []);
-
-  const calculateMarketCounts = () => {
-    const countsByMarket = {};
-
-    trackingDetails.forEach(detail => {
-      const market = detail.Market || 'Unknown';
-      const assignedDate = new Date(detail.assignedDate);
-      const now = new Date();
-      const daysDifference = Math.floor((now - assignedDate) / (1000 * 60 * 60 * 24));
-
-      if (!countsByMarket[market]) {
-        countsByMarket[market] = {
-          rdmApprovalCount: 0,
-          trainingPendingCount: 0,
-          passDueCount: 0,
-          totalCount: 0
-        };
-      }
-
-      if (detail.status === "RDM Approval") {
-        rdm += 1;
-      }
-      if (detail.status === "Training Pending") {
-        training += 1;
-      }
-
-      if (detail.status === "RDM Approval") {
-        countsByMarket[market].rdmApprovalCount += 1;
-      }
-
-      if (detail.status === "Training Pending") {
-        countsByMarket[market].trainingPendingCount += 1;
-      }
-      if (daysDifference >= 14) {
-        countsByMarket[market].passDueCount += 1;
-        passdue += 1;
-      }
-      countsByMarket[market].totalCount += 1;
-    });
-
-    return countsByMarket;
-  };
-
-  const countsByMarket = calculateMarketCounts();
-
-  const handleMarketSelection = (market) => {
-    setSelectedMarket(market);
-    setIsPopoverOpen(false); // Close the Popover after selection
-  };
-
-  const filteredCounts = selectedMarket === 'All' ? countsByMarket : { [selectedMarket]: countsByMarket[selectedMarket] };
+export default function Home() {
+  const { countsByMarket, totals, loading, error } = useTrackingData();
+  const [selectedMarket, setSelectedMarket] = useState("All");
 
   const defaultOptions = {
     loop: true,
     autoplay: true,
-    animationData: animationData,
-    rendererSettings: {
-      preserveAspectRatio: "xMidYMid slice",
-    },
+    animationData,
+    rendererSettings: { preserveAspectRatio: "xMidYMid slice" },
   };
 
-  if (loading) {
+  if (loading)
     return (
-      <Container
-        fluid
-        className="d-flex justify-content-center align-items-center vh-100"
-      >
+      <Container className="vh-100 d-flex justify-content-center align-items-center">
         <Lottie options={defaultOptions} height={150} width={150} />
       </Container>
     );
-  }
-
-  if (error) {
+  if (error)
     return (
       <Container className="mt-5">
-        <Alert variant="danger">{error}</Alert>
+        <div className="alert alert-danger">{error}</div>
       </Container>
     );
-  }
 
   const cards = [
     {
-      title: 'RDM Approval',
-      value: rdm,
+      title: "RDM Approval",
+      value: totals.rdm,
       icon: <FaUserCheck size={24} />,
-      gradient: 'linear-gradient(135deg, #32c3a6 0%, #2e8b9a 100%)',
-      delay: 'animate__delay-0s'
+      gradient: "linear-gradient(135deg, #32c3a6 0%, #2e8b9a 100%)",
     },
     {
-      title: 'Training Pending',
-      value: training,
+      title: "Training Pending",
+      value: totals.training,
       icon: <FaGraduationCap size={24} />,
-      gradient: 'linear-gradient(135deg, #49a3f1 0%, #1A73E8 100%)',
-      delay: 'animate__delay-0.1s'
+      gradient: "linear-gradient(135deg, #49a3f1 0%, #1A73E8 100%)",
     },
     {
-      title: 'Past Due',
-      value: passdue,
+      title: "Past Due",
+      value: totals.passdue,
       icon: <FaClock size={24} />,
-      gradient: 'linear-gradient(135deg,rgb(15, 66, 60) 0%, #764ba2 100%)',
-      delay: 'animate__delay-0.2s'
+      gradient: "linear-gradient(135deg,rgb(15, 66, 60) 0%, #764ba2 100%)",
     },
     {
-      title: 'Total',
-      value: trackingDetails.length,
+      title: "Total",
+      value: totals.total,
       icon: <FaChartLine size={24} />,
-      gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      delay: 'animate__delay-0.2s'
-    }
+      gradient: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+    },
   ];
 
   return (
-    <Container className="col-md-12">
-      <h3 className="mt-4 text-center" style={{ color: "#E10174" }}>Trainings Dashboard</h3>
+    <Container>
+      <h3 className="mt-4 text-center" style={{ color: "#E10174" }}>
+        Trainings Dashboard
+      </h3>
       <Row className="g-4 justify-content-around mt-2 mb-4">
-        {cards.map((card, index) => (
-          <Col key={index} xs={12} sm={6} md={4} lg={3}>
-            <Card
-              className={`h-100 shadow-lg border-0 rounded-4 overflow-hidden animate__animated animate__fadeIn ${card.delay}`}
-              style={{
-                transition: 'transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-5px)';
-                e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.15)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
-              }}
-            >
-              <div
-                className="position-absolute w-100 h-100"
-                style={{
-                  background: card.gradient,
-                  opacity: 0.95,
-                  zIndex: 1
-                }}
-              />
-              <Card.Body className="position-relative d-flex flex-column align-items-center p-4" style={{ zIndex: 2 }}>
-                <div className="mb-3 p-3 rounded-circle bg-white bg-opacity-25">
-                  <div className="text-white">
-                    {card.icon}
-                  </div>
-                </div>
-                <Card.Title className="mb-3 text-white fw-bold">
-                  {card.title}
-                </Card.Title>
-                <h2 className="display-5 mb-0 fw-bold text-white">
-                  {card.value}
-                </h2>
-              </Card.Body>
-            </Card>
+        {cards.map((card, i) => (
+          <Col key={i} xs={12} sm={6} md={4} lg={3}>
+            <DashboardCard {...card} />
           </Col>
         ))}
       </Row>
-      <Table striped bordered hover responsive className="table-sm">
-        <thead>
-          <tr className="text-center">
-            <th>
-              <OverlayTrigger
-                trigger="click"
-                placement="bottom"
-                show={isPopoverOpen} // Control Popover visibility
-                onToggle={(nextShow) => setIsPopoverOpen(nextShow)} // Update state on toggle
-                overlay={
-                  <Popover id="popover-basic">
-                    <Popover.Header as="h3">Select Market</Popover.Header>
-                    <Popover.Body>
-                      <Dropdown.Item onClick={() => handleMarketSelection('All')}>
-                        All
-                      </Dropdown.Item>
-                      {Object.keys(countsByMarket).map((market, index) => (
-                        <Dropdown.Item key={index} onClick={() => handleMarketSelection(market)} className='text-capitalize'>
-                          {market?.toLocaleLowerCase()}
-                        </Dropdown.Item>
-                      ))}
-                    </Popover.Body>
-                  </Popover>
-                }
-              >
-                <button
-                  className="custom-dropdown1 border-0 bg-transparent text-white fw-bolder shadow-none"
-                  onClick={() => setIsPopoverOpen(!isPopoverOpen)} // Toggle Popover visibility
-                >
-                  {selectedMarket === 'All' ? 'Market' : selectedMarket}
-                  <MdOutlineKeyboardArrowDown className='fs-3' />
-                </button>
-              </OverlayTrigger>
-            </th>
-            <th>
-              <span>RDM Approval</span>
-            </th>
-            <th>
-              <span>Training Pending</span>
-            </th>
-            <th>
-              <span>Pass Due</span>
-            </th>
-            <th>Total</th>
-          </tr>
-        </thead>
-        <tbody className="text-center text-capitalize">
-          {Object.keys(filteredCounts).length > 0 ? (
-            Object.keys(filteredCounts).map((market, index) => (
-              <tr key={index}>
-                <td>{market?.toLocaleLowerCase()}</td>
-                <td>{filteredCounts[market].rdmApprovalCount}</td>
-                <td>{filteredCounts[market].trainingPendingCount}</td>
-                <td>{filteredCounts[market].passDueCount}</td>
-                <td>{filteredCounts[market].totalCount}</td>
-              </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan="5" className="text-center">
-                No data available
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </Table>
+      <div className="d-flex justify-content-end  mb-2"  >
+        <MarketDropdown
+        
+          markets={Object.keys(countsByMarket)}
+          selected={selectedMarket}
+          onSelect={setSelectedMarket}
+        />
+      </div>
+      <TrackingTable
+        countsByMarket={countsByMarket}
+        selectedMarket={selectedMarket}
+      />
     </Container>
   );
 }
-
-export default Home;

@@ -1,89 +1,45 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+// MyContext.js
+import { createContext, useContext, useState } from "react";
 
 const MyContext = createContext();
 
-
-export function MyProvider({ children, navigate }) {
-  const [users, setUsers] = useState([]);
+export const MyProvider = ({ children, navigate }) => {
   const [authState, setAuthState] = useState({
-    isAuthenticated: false,
-    role: null,
-    userId: null,
-    loading: true,
+    isAuthenticated: !!localStorage.getItem("userdata"),
+    role: localStorage.getItem("userRole") || null,
+    id: localStorage.getItem("userId") || null,
+    loading: false,
   });
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const response = await fetch(`${process.env.REACT_APP_BASE_URL}/users/me`, {
-          method: "GET",
-          credentials: "include",
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          setAuthState({
-            isAuthenticated: true,
-            role: data.role,
-            userId: data.id,
-            loading: false,
-          });
-        } else {
-          setAuthState(prev => ({ ...prev, loading: false }));
-        }
-      } catch (error) {
-        console.error("Error checking auth:", error);
-        setAuthState(prev => ({ ...prev, loading: false }));
-      }
-    };
-    checkAuth();
-  }, []);
-
-  const updateAuth = (isAuthenticated, role, userId) => {
-    setAuthState({ isAuthenticated, role, userId, loading: false });
+  // Call this after successful login
+  const updateAuth = (isAuthenticated, role, id) => {
+    setAuthState({
+      isAuthenticated,
+      role,
+      id,
+      loading: false,
+    });
   };
 
-  const logout = async () => {
-    try {
-      const response = await fetch(`${process.env.REACT_APP_BASE_URL}/logout`, {
-        method: "POST",
-        credentials: "include",
-      });
-
-      if (response.ok) {
-        setAuthState({
-          isAuthenticated: false,
-          role: null,
-          userId: null,
-          loading: false
-        });
-        navigate('/', { replace: true });
-      } else {
-        throw new Error('Logout failed');
-      }
-    } catch (error) {
-      console.error("Logout failed:", error);
-      setAuthState({
-        isAuthenticated: false,
-        role: null,
-        userId: null,
-        loading: false
-      });
-      navigate('/', { replace: true });
-    }
+  // Logout handler
+  const logout = () => {
+    setAuthState({
+      isAuthenticated: false,
+      role: null,
+      id: null,
+      loading: false,
+    });
+    localStorage.removeItem("userdata");
+    localStorage.removeItem("userRole");
+    localStorage.removeItem("userId");
+    // Optionally also clear session cookies or call backend logout endpoint
   };
 
   return (
-    <MyContext.Provider value={{ users, setUsers, authState, updateAuth, logout }}>
+    <MyContext.Provider value={{ authState, updateAuth, logout, navigate }}>
       {children}
     </MyContext.Provider>
   );
-}
+};
 
-export function useMyContext() {
-  const context = useContext(MyContext);
-  if (context === undefined) {
-    throw new Error('useMyContext must be used within a MyProvider');
-  }
-  return context;
-}
+export const useMyContext = () => useContext(MyContext);

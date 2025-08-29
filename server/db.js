@@ -9,8 +9,9 @@ const db = mysql.createPool({
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   waitForConnections: true,
-  connectTimeout: 60000, // 60 seconds
-  acquireTimeout: 60000, // 60 seconds
+  connectTimeout: 60000, // 60 seconds for initial connection
+  connectionLimit: 10,   // max number of connections in pool
+  queueLimit: 0,         // unlimited queued requests
   multipleStatements: true,
 });
 

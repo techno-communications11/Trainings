@@ -1,25 +1,23 @@
-import React from "react";
-import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
+// App.js
+import { BrowserRouter, Routes, Route, useLocation, useNavigate, Navigate } from "react-router-dom";
 import FileUploadPage from "./Training/FileUploadPage";
 import Crediantals from "./Training/Crediantals";
-import Management from "./Training/Management";
-import MarketStructure from "./Training/MarketStructure";
+import {Management} from "./Training/Management";
+import {MarketStructure} from "./Training/MarketStructure";
 import CustomNavbar from "./CustomNavbar";
 import Login from "./Login";
 import { Register } from "./Register";
 import PrivateRoute from "./PrivateRoute";
 import Home from "./Training/Home";
 import Users from "./UpdatePasswordForm";
-import { MyProvider } from "./MyContext";
+import { MyProvider, useMyContext } from "./MyContext";
 import LiveTrack from "./Tracking/LiveTrack";
 import ShipmentTracking from "./Tracking/ShipmentTracking";
 import UpsLiveTrack from "./Tracking/UpsLiveTrack";
-import { useMyContext } from "./MyContext";
 import TrainingDetails from "./Training/TrainingDetails";
 import TrackingDetails from "./Tracking/TrackingDetails";
 
 function AppContent() {
-  // const navigate = useNavigate();
   const { authState } = useMyContext();
   const location = useLocation();
 
@@ -33,26 +31,35 @@ function AppContent() {
     );
   }
 
-  const showNavbar = authState.isAuthenticated && location.pathname !== '/';
+  const showNavbar = authState.isAuthenticated && location.pathname !== "/";
 
   return (
     <>
       {showNavbar && <CustomNavbar />}
       <Routes>
-        <Route path="/" element={<Login />} />
+        {/* Public routes */}
+        <Route path="/" element={
+          authState.isAuthenticated || localStorage.getItem('userdata')
+            ? <Navigate to={authState.role === "Training" ? "/home" : "/traininghome"} replace />
+            : <Login />
+        } />
         <Route path="/user" element={<Users />} />
+
+        {/* Private routes */}
         <Route path="/register" element={<PrivateRoute element={<Register />} />} />
         <Route path="/home" element={<PrivateRoute element={<Home />} />} />
-        <Route path="/trackhome" element={<PrivateRoute element={<ShipmentTracking />} />} />
-        <Route path="/trainingdata" element={<PrivateRoute element={
-          authState.role === 'Training' ? <TrainingDetails /> : <TrackingDetails />
-        } />} />
+        <Route path="/traininghome" element={<PrivateRoute element={<ShipmentTracking />} />} />
+        <Route path="/trainingdata" element={
+          <PrivateRoute element={authState.role === "Training" ? <TrainingDetails /> : <TrackingDetails />} />
+        } />
         <Route path="/credentials" element={<PrivateRoute element={<Crediantals />} />} />
         <Route path="/management" element={<PrivateRoute element={<Management />} />} />
         <Route path="/marketstructure" element={<PrivateRoute element={<MarketStructure />} />} />
         <Route path="/trackingdetails" element={<PrivateRoute element={<FileUploadPage />} />} />
         <Route path="/livetrack" element={<PrivateRoute element={<LiveTrack />} />} />
         <Route path="/upslivetrack" element={<PrivateRoute element={<UpsLiveTrack />} />} />
+
+        {/* Fallback */}
         <Route path="*" element={<div className="container mt-5 text-center">404 Page Not Found</div>} />
       </Routes>
     </>
