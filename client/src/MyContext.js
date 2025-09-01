@@ -22,7 +22,12 @@ export const MyProvider = ({ children, navigate }) => {
   };
 
   // Logout handler
-  const logout = () => {
+ const logout = async () => {
+  try {
+    await fetch(`${process.env.REACT_APP_BASE_URL}/logout`, { method: "POST", credentials: "include" });
+  } catch (err) {
+    console.error("Backend logout failed:", err);
+  } finally {
     setAuthState({
       isAuthenticated: false,
       role: null,
@@ -33,8 +38,10 @@ export const MyProvider = ({ children, navigate }) => {
     localStorage.removeItem("userRole");
     localStorage.removeItem("userId");
     localStorage.removeItem("token");
-    // Optionally also clear session cookies or call backend logout endpoint
-  };
+    navigate("/"); // redirect to login page
+  }
+};
+
 
   return (
     <MyContext.Provider value={{ authState, updateAuth, logout, navigate }}>
