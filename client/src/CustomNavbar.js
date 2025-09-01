@@ -15,7 +15,7 @@ const CustomNavbar = () => {
 
   const homeRoute = {
     Training: "/home",
-    Tracking: "/trackhome",
+    Tracking: "/traininghome",
   }[authState.role] || "/";
 
   const handleLogout = async () => {
