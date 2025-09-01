@@ -32,6 +32,7 @@ export const MyProvider = ({ children, navigate }) => {
     localStorage.removeItem("userdata");
     localStorage.removeItem("userRole");
     localStorage.removeItem("userId");
+    localStorage.removeItem("token");
     // Optionally also clear session cookies or call backend logout endpoint
   };
 
